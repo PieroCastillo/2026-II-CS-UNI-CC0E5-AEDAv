@@ -21,4 +21,6 @@ void DemoVector() {
 
     cout << "Vector using cout directly: ";
     cout << vec << endl;
+
+    vec.apply([](auto i) { cout << (i + 1); });
 }

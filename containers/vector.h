@@ -4,14 +4,15 @@
 #include <iostream>
 #include <stdexcept>
 #include <algorithm> // para std::swap
+#include <functional>
 using namespace std;
 
 template <typename T>
 class Vector {
 private:
-    T  *    m_data;        // puntero al arreglo dinámico
+    T* m_data;        // puntero al arreglo dinámico
     size_t  m_size,        // cantidad actual
-            m_capacity;    // capacidad
+        m_capacity;    // capacidad
 
     void reserve(size_t new_cap) {
         if (new_cap <= m_capacity) return;
@@ -59,15 +60,21 @@ public:
         std::swap(m_data, other.m_data);
         std::swap(m_size, other.m_size);
         std::swap(m_capacity, other.m_capacity);
-    }
 
         if (m_size == m_capacity) {
             size_t new_cap = (m_capacity == 0) ? 1 : m_capacity * 2;
             reserve(new_cap);
         }
-        m_data[m_size] = value;
+        // m_data[m_size] = value;
         ++m_size;
     }
+
+    void push_back(const T& value)
+    {
+        reserve(m_size + 1);
+        m_data[m_size] = value;
+        ++m_size;
+    };
 
     void pop_back() {
         if (m_size > 0) {
@@ -107,20 +114,28 @@ public:
         m_size = 0;
     }
 
-    ostream &print(ostream &os){
+    ostream& print(ostream& os) {
         os << "[";
-        for (size_t i = 0; i < size()-1; ++i)
+        for (size_t i = 0; i < size() - 1; ++i)
             os << m_data[i] << " ";
         if (size() > 0)
-            os << m_data[size()-1];
+            os << m_data[size() - 1];
         return os << "]" << endl;
+    }
+
+    void apply(std::function<void(const T&)> predicate)
+    {
+        for (size_t i = 0; i < m_size; ++i)
+        {
+            predicate(m_data[i]);
+        }
     }
     // TODO: aplicarle una funcion a cada elemento.
     //       ej. sumarle un valor x
 };
 
 template <typename T>
-ostream& operator<<(ostream &os, Vector<T> &vec) {
+ostream& operator<<(ostream& os, Vector<T>& vec) {
     return vec.print(os);
 }
 
