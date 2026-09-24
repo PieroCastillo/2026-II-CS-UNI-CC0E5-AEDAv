@@ -4,14 +4,15 @@
 #include <initializer_list>
 #include "GeneralIterator.h"
 #include "../types.h" // Ref
+#include "../foreach.h" // ref
 using namespace std;
 
 template <typename T>
 class VectorForwardIterator : public GeneralIterator<VectorForwardIterator<T>, T> {
 public:
-    using value_type        = T;
-    using MySelf            = VectorForwardIterator<T>;
-    using Parent            = GeneralIterator<MySelf, T>;
+    using value_type = T;
+    using MySelf = VectorForwardIterator<T>;
+    using Parent = GeneralIterator<MySelf, T>;
     using Parent::Parent; // Inherit constructor
 
     // Prefix increment
@@ -21,9 +22,9 @@ public:
 template <typename T>
 class VectorBackwardIterator : public GeneralIterator<VectorBackwardIterator<T>, T> {
 public:
-    using value_type        = T;
-    using MySelf            = VectorBackwardIterator<T>;
-    using Parent            = GeneralIterator<MySelf, T>;
+    using value_type = T;
+    using MySelf = VectorBackwardIterator<T>;
+    using Parent = GeneralIterator<MySelf, T>;
     using Parent::Parent; // Inherit constructor
 
     // Prefix increment
@@ -31,7 +32,7 @@ public:
 };
 
 template <typename T>
-struct GeneralNode{
+struct GeneralNode {
 private:
     T   m_value;
     Ref m_ref;      // Reference to the value
@@ -40,10 +41,10 @@ public:
     GeneralNode() = default; // requerido por resize(): new Node[new_cap]
     GeneralNode(const T& value, Ref ref) : m_value(value), m_ref(ref) {}
     T    getValue() const { return m_value; }
-    Ref  getRef()   const { return m_ref;   }
-    T&   value()          { return m_value; } // acceso mutable para ApplyFunction
+    Ref  getRef()   const { return m_ref; }
+    T& value() { return m_value; } // acceso mutable para ApplyFunction
 
-    friend ostream &operator <<(ostream &os, const GeneralNode<T> &node) {
+    friend ostream& operator <<(ostream& os, const GeneralNode<T>& node) {
         os << "(" << node.getValue() << "," << node.getRef() << ")";
         return os;
     }
@@ -51,23 +52,23 @@ public:
 
 template <typename T>
 struct VectorAscTraits {
-    using value_type        = T;
-    using Node              = GeneralNode<T>;
-    using ForwardIterator   = VectorForwardIterator<Node>;  // itera sobre Node, no sobre T
-    using BackwardIterator  = VectorBackwardIterator<Node>; // itera sobre Node, no sobre T
+    using value_type = T;
+    using Node = GeneralNode<T>;
+    using ForwardIterator = VectorForwardIterator<Node>;  // itera sobre Node, no sobre T
+    using BackwardIterator = VectorBackwardIterator<Node>; // itera sobre Node, no sobre T
 };
 
 template <typename Traits>
 class Vector {
 public:
-    using value_type        = Traits::value_type;
-    using Node              = Traits::Node;
-    using ForwardIterator   = Traits::ForwardIterator;
-    using BackwardIterator  = Traits::BackwardIterator;
+    using value_type = Traits::value_type;
+    using Node = Traits::Node;
+    using ForwardIterator = Traits::ForwardIterator;
+    using BackwardIterator = Traits::BackwardIterator;
 private:
-    Node        *m_data     = nullptr;   // puntero al arreglo dinámico
-    size_t       m_size     = 0,         // cantidad actual
-                 m_capacity = 0;         // capacidad
+    Node* m_data = nullptr;   // puntero al arreglo dinámico
+    size_t       m_size = 0,         // cantidad actual
+        m_capacity = 0;         // capacidad
     mutex        m_mutex;                // mutex para sincronización
 
     void resize(size_t new_cap) {
@@ -85,7 +86,7 @@ public:
 
     // Cada elemento de la lista es una pareja (valor, ref) para un Node
     Vector(initializer_list<pair<value_type, Ref>> values) {
-        for (const auto &v : values)
+        for (const auto& v : values)
             push_back(v.first, v.second);
     }
 
@@ -102,8 +103,8 @@ public:
 
     // Move constructor and move assignment operator
     Vector(Vector&& other) noexcept {
-        m_data     = std::exchange(other.m_data, nullptr);
-        m_size     = std::exchange(other.m_size, 0);
+        m_data = std::exchange(other.m_data, nullptr);
+        m_size = std::exchange(other.m_size, 0);
         m_capacity = std::exchange(other.m_capacity, 0);
     }
 
@@ -111,8 +112,8 @@ public:
     Vector& operator=(Vector&& other) noexcept {
         if (this != &other) {
             clear();
-            m_data     = std::exchange(other.m_data, nullptr);
-            m_size     = std::exchange(other.m_size, 0);
+            m_data = std::exchange(other.m_data, nullptr);
+            m_size = std::exchange(other.m_size, 0);
             m_capacity = std::exchange(other.m_capacity, 0);
         }
         return *this;
@@ -150,53 +151,73 @@ public:
 
     void clear() {
         lock_guard<mutex> lock(m_mutex);
-        delete [] m_data;
-        m_data     = nullptr;
-        m_size     = 0;
+        delete[] m_data;
+        m_data = nullptr;
+        m_size = 0;
         m_capacity = 0;
     }
 
     ForwardIterator   begin() { return ForwardIterator(m_data); }
-    ForwardIterator   end()   { return ForwardIterator(m_data + m_size); }
+    ForwardIterator   end() { return ForwardIterator(m_data + m_size); }
     BackwardIterator rbegin() { return BackwardIterator(m_data + m_size - 1); }
-    BackwardIterator rend()   { return BackwardIterator(m_data - 1); }
+    BackwardIterator rend() { return BackwardIterator(m_data - 1); }
 
     // Persistencia
-    ostream &write(ostream &os){
-        // TODO: convertirla en una linea que usa la funcion ApplyFunction generica
-        lock_guard<mutex> lock(m_mutex);
+    ostream& write(ostream& os) {
         os << "[";
-        for (size_t i = 0; i < size()-1; ++i)
-            os << m_data[i] << ",";
-        if (size() > 0)
-            os << m_data[size()-1];
+
+        size_t i = 0;
+        ApplyFunction([&](Node& value, ostream& os) {
+            os << value;
+            if (i + 1 < size())
+                os << ", ";
+            ++i;
+            }, os);
+
         return os << "]";
     }
 
-    // TODO: implementar la lectura de un vector desde un stream
-    istream &read(istream &is){
-        // Implementation for reading vector from stream
+    istream& read(istream& is) {
+        char c;
+        is >> c; // [
+
+        while (is >> c && c != ']') {
+            value_type value;
+            Ref ref;
+            // (
+            is >> value;
+            is >> c; // ,
+            is >> ref;
+            is >> c; // )
+
+            push_back(value, ref);
+
+            is >> c; // , or ]
+            if (c == ']')
+                break;
+        }
+        return is;
     }
+
     // Aplicarle una funcion a cada elemento.
     //       ej. sumarle un valor x
     // Variadic template to allow passing additional arguments to the function
     // Iterator Level #0
     template <typename Func, typename... Args>
-    void ApplyFunction(Func func, Args... args) {
+    void ApplyFunction(Func func, Args&&... args) {
         lock_guard<mutex> lock(m_mutex);
-        // TODO: retutilizar la funcion ApplyFunction generica de foreach.h
-        for (size_t i = 0; i < size(); ++i) {
-            func(m_data[i], args...);
-        }
+        ::ApplyFunction(begin(), end(), func, std::forward<Args>(args)...);
     }
+
     template <typename Func, typename... Args>
     Node& FirstThat(Func func, Args... args) {
         lock_guard<mutex> lock(m_mutex);
         // TODO: retutilizar la funcion ApplyFunction generica de foreach.h
         for (size_t i = 0; i < size(); ++i)
-            if( func(m_data[i], args...) )
+            if (func(m_data[i], args...))
                 return m_data[i];
     }
+
     // template<typename Func, typename... Args>
     // decltype(auto) call(Func func, Args&&... args)
     // {
@@ -216,12 +237,12 @@ public:
 };
 
 template <typename T>
-ostream& operator<<(ostream &os, Vector<T> &vec) {
+ostream& operator<<(ostream& os, Vector<T>& vec) {
     return vec.write(os);
 }
 
 template <typename T>
-istream& operator>>(istream &is, Vector<T> &vec) {
+istream& operator>>(istream& is, Vector<T>& vec) {
     return vec.read(is);
 }
 
