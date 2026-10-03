@@ -4,5 +4,6 @@
 #include "types.h"
 void DemoVector();
 void DemoRaceCondition();
+void DemoLinkedList();
 
 #endif // __DEMOS_H__

@@ -9,5 +9,6 @@ using namespace std;
 int main() {
     DemoVector();
     DemoRaceCondition();
+    DemoLinkedList();
     return 0;
 }
