@@ -11,6 +11,7 @@ class LinkedListNode : public GeneralNode<T> {
     using NodePtr = Node*;
 public:
     Node* m_pNext = nullptr; // puntero al siguiente nodo, npara acceso directo necesita ser publico
+    LinkedListNode() : GeneralNode<T>(T{}, Ref{}), m_pNext(nullptr) {}
     // añadir friend class añade otro typename al template
     LinkedListNode(const T& value, Ref ref, Node* pNext) : GeneralNode<T>(value, ref), m_pNext(pNext) {}
 };
@@ -49,6 +50,7 @@ public:
     using NodePtr           = Node *;
     using ForwardIterator   = typename Traits::ForwardIterator;
     using Compare           = typename Traits::Compare;
+    using Delim             = typename Node::Delim;
 private:
     NodePtr m_pRoot = nullptr; // puntero al primer nodo de la lista enlazada
     NodePtr m_pTail = nullptr; // puntero al último nodo de la lista enlazada
@@ -57,20 +59,21 @@ private:
     mutable std::mutex m_mutex; // mutex para sincronización
 
     NodePtr GetRoot() const { return m_pRoot; }
+    void internalInsert(const value_type& value, Ref ref, NodePtr& rParent);
+    void swap(LinkedList& otro) noexcept;
+
 public:
     LinkedList() {}
-    LinkedList(const LinkedList&) = delete; // no se permite copia
-    LinkedList& operator=(const LinkedList&) = delete; // no se permite asignacion
+    LinkedList(const LinkedList& otro); // no se permite copia
+    LinkedList& operator=(const LinkedList& otro); // no se permite asignacion
 
     void clear();
-    virtual ~LinkedList();
+    virtual ~LinkedList(){ clear(); };
 
     void push_back(const value_type& value, Ref ref);
 
     bool empty() const { return m_pRoot == nullptr; }
-private:
-    void internalInsert(const value_type& value, Ref ref, NodePtr& rParent);
-public:
+
     void insert(const value_type& value, Ref ref) {
         scoped_lock lock(m_mutex);
         internalInsert(value, ref, m_pRoot);
@@ -78,12 +81,12 @@ public:
 
     std::ostream& write(std::ostream& os) { return os << *this; }
     std::istream& read(std::istream& is) { return is >> *this; }
+
     friend std::ostream& operator <<(std::ostream& os, const LinkedList<Traits>& list) {
         lock_guard lock(list.m_mutex);
         auto first = true;
         os << "[";
-        for (auto it = list.begin(); it != list.end(); ++it)
-        {
+        for (auto it = list.begin(); it != list.end(); ++it){
             if (!first)
                 os << ",";
             os << *it;
@@ -92,34 +95,38 @@ public:
         return os << "]";
     }
     
-    friend std::istream& operator >>(std::istream& is, const LinkedList<Traits>& list) {
-        lock_guard lock(list.m_mutex);
-        uint32_t c;
-        is >> c; // [
+    friend std::istream &operator >>(std::istream &is, LinkedList<Traits> &list) {
+        Delim d;
+        Node node;
+        LinkedList temp;
 
-        while (is >> c && c != ']') {
-            value_type value;
-            Ref ref;
-            // (
-            is >> value;
-            is >> c; // ,
-            is >> ref;
-            is >> c; // )
-
-            push_back(value, ref);
-
-            is >> c; // , or ]
-            if (c == ']')
-                break;
+        is >> d;
+        if (is >> d && d != ']'){
+            is.unget();
+            while(is >> node >> d){
+                temp.push_back(node.getValue(), node.getRef());
+                if (d == ']'){
+                    break;
+                }
+            }    
         }
-        return is;
-        return is;
+
+        std::lock_guard<std::mutex> lock(list.m_mutex);
+        list.swap(temp);
+        return is; 
     }
+    
     // Iterators
-    ForwardIterator begin() { return ForwardIterator(m_pRoot); }
-    ForwardIterator end() { return ForwardIterator(nullptr); }
+    // ForwardIterator begin() { return ForwardIterator(m_pRoot); }
+    // ForwardIterator end() { return ForwardIterator(nullptr); }
     ForwardIterator begin() const { return ForwardIterator(m_pRoot); }
     ForwardIterator end() const { return ForwardIterator(nullptr); }
+
+    template<typename Func, typename... Args>
+    decltype(auto) call(Func func, Args&&... args){
+        lock_guard<mutex> lock(this->m_mutex);
+        return ::call(begin(), end(), std::forward<Func>(func), std::forward<Args>(args)...);
+    }
 
     template <typename Func, typename... Args>
     void ApplyFunction(Func func, Args... args) {
@@ -130,41 +137,70 @@ public:
     Node& FirstThat(Func func, Args... args) {
         return call(func, std::forward<Args>(args)...);
     }
-
-    template<typename Func, typename... Args>
-    decltype(auto) call(Func func, Args&&... args)
-    {
-        lock_guard<mutex> lock(m_mutex);
-        if constexpr (is_void_v<invoke_result_t<Func, Node&, Args...>>)
-            ::call(begin(), end(), std::forward<Func>(func), std::forward<Args>(args)...);
-        else // return type is not void:
-            return ::call(begin(), end(), std::forward<Func>(func), std::forward<Args>(args)...);
-    }
 };
 
 template <typename Traits>
-void LinkedList<Traits>::clear()
-{
+void LinkedList<Traits>::swap(LinkedList& otro) noexcept{
+    std::swap(this->m_pRoot, otro.m_pRoot);
+    std::swap(this->m_pTail, otro.m_pTail);
+}
+
+template <typename Traits>
+LinkedList<Traits>::LinkedList(const LinkedList& otro){
+    std::lock_guard<std::mutex> lock(otro.m_mutex);
+    
+    if(!otro.m_pRoot){
+        return;
+    }
+
+    this->m_pRoot = new Node(otro.m_pRoot->getValue(), otro.m_pRoot->getRef(), nullptr);
+
+    NodePtr next = otro.m_pRoot->m_pNext;
+    NodePtr curr = this->m_pRoot;
+
+    while(next){
+        curr->m_pNext = new Node(next->getValue(), next->getRef(), nullptr);
+        curr = curr->m_pNext;
+        next = next->m_pNext;
+    }
+
+    this->m_pTail = curr;
+}
+
+template <typename Traits>
+LinkedList<Traits>& LinkedList<Traits>::operator=(const LinkedList<Traits>& otro){ 
+    if (this == &otro){
+        return *this;
+    }
+
+    LinkedList temp(otro);
+    lock_guard<mutex> lock(m_mutex);
+    swap(temp);
+
+    return *this;
+}
+
+template <typename Traits>
+void LinkedList<Traits>::clear(){
     scoped_lock lock(m_mutex);
-    for (auto it = begin(); it != end(); ++it)
-    {
+    for (auto it = begin(); it != end(); ++it){
         delete& (*it);
     }
     m_pRoot = nullptr;
     m_pTail = nullptr;
 }
 
-template <typename Traits>
-LinkedList<Traits>::~LinkedList()
-{
-    clear();
-}
-
-template <typename Traits>
-void LinkedList<Traits>::push_back(const value_type& value, Ref ref)
-{
+template<typename Traits>
+void LinkedList<Traits>::push_back(const value_type& value, Ref ref){
     scoped_lock lock(m_mutex);
-    internalInsert(value, ref, m_pRoot);
+    NodePtr new_node = new Node(value, ref, nullptr);
+    if (!this->m_pRoot){
+        this->m_pRoot = new_node;
+        this->m_pTail = new_node;
+    } else {
+        this->m_pTail->m_pNext = new_node;
+        this->m_pTail = new_node;
+    }
 }
 
 /*
