@@ -29,13 +29,22 @@ public:
     operator++() { Parent::m_ptr = Parent::m_ptr->m_pNext; return *this; }
 };
 
-template <typename T>
-struct LinkedListAscTraits {
+template <typename T, typename _Compare = std::less<T>>
+struct AscendingTraits {
     using value_type        = T;
+    using Compare           = _Compare;
+};
+template <typename T>
+struct LinkedListAscTraits : public AscendingTraits<T, std::less<T>> {
     using Node              = LinkedListNode<T>;
     using ForwardIterator   = LinkedListForwardIterator<T>;  // itera sobre Node, no sobre T
 };
 
+template <typename T>
+struct LinkedListDescTraits : public AscendingTraits<T, std::greater<T>> {
+    using Node              = LinkedListNode<T>;
+    using ForwardIterator   = LinkedListForwardIterator<T>;  // itera sobre Node, no sobre T
+};
 template <typename Traits>
 class LinkedList {
 public:
@@ -43,13 +52,17 @@ public:
     using Node              = typename Traits::Node;
     using NodePtr           = Node *;
     using ForwardIterator   = typename Traits::ForwardIterator;
+    using Compare           = typename Traits::Compare;
+
 private:
     NodePtr m_pRoot = nullptr; // puntero al primer nodo de la lista enlazada
     NodePtr m_pTail = nullptr; // puntero al último nodo de la lista enlazada
+    
+    Compare m_comp; // comparador para ordenar los nodos de la lista
     // TODO: agregar mutex para sincronización de acceso concurrente
     std::mutex m_mutex;             // mutex para sincronización
 
-    NodePtrGetRoot() const { return m_pRoot; }
+    NodePtr GetRoot() const { return m_pRoot; }
 public:
     LinkedList() {}
     // TODO: implementar LinkedList con nodos enlazados y métodos push_back.
@@ -107,7 +120,7 @@ LinkedList<Traits>& LinkedList<Traits>::operator=(const LinkedList<Traits>&){ //
 // TODO: explicar recursividad de cola de llamadas en insert() y internalInsert()
 template <typename Traits>
 void LinkedList<Traits>::internalInsert(const value_type& value, Ref ref, NodePtr &rParent){
-    if( rParent == nullptr || value < rParent->getValue() ) {
+    if( rParent == nullptr || m_comp(value, rParent->getValue()) ) {
         rParent = new Node(value, ref, rParent);
         return;
     } 
