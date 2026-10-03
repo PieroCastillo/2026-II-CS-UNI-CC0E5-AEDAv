@@ -165,5 +165,6 @@ void DemoLinkedList()
         list.push_back(e.first, e.second);
 
     TestContainer(list, {{5, 15}, {6, 16}, {7, 17}, {8, 18}, {9, 19}}, "list.txt");
+    list.write(std::cout);
     // TestTraversal(list);
 }

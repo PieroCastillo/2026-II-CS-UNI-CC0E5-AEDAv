@@ -64,24 +64,43 @@ public:
         internalInsert(value, ref, m_pRoot);
     }
 
-    // TODO: persistencia: write() y read() para LinkedList
     std::ostream& write(std::ostream& os) { return os << *this; }
     std::istream& read(std::istream& is) { return is >> *this; }
     friend std::ostream& operator <<(std::ostream& os, const LinkedList<Traits>& list) {
         lock_guard lock(list.m_mutex);
-        // NodePtr current = list.m_pRoot;
+        auto first = true;
         os << "[";
         for (auto it = list.begin(); it != list.end(); ++it)
         {
+            if (!first)
+                os << ",";
             os << *it;
-            //   if (current != nullptr) os << ",";
+            first = false;
         }
         return os << "]";
     }
-    // TODO: implementar
+    
     friend std::istream& operator >>(std::istream& is, const LinkedList<Traits>& list) {
         lock_guard lock(list.m_mutex);
-        
+        uint32_t c;
+        is >> c; // [
+
+        while (is >> c && c != ']') {
+            value_type value;
+            Ref ref;
+            // (
+            is >> value;
+            is >> c; // ,
+            is >> ref;
+            is >> c; // )
+
+            push_back(value, ref);
+
+            is >> c; // , or ]
+            if (c == ']')
+                break;
+        }
+        return is;
         return is;
     }
     // Iterators
