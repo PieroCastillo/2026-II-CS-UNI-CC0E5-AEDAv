@@ -6,6 +6,7 @@
 #include <vector>
 #include "foreach.h"
 #include "containers/vector.h"
+#include "containers/linkedlist.h"
 #include "Demos.h"
 using namespace std;
 
@@ -158,4 +159,12 @@ void DemoRaceCondition() {
 void DemoLinkedList()
 {
     // Implementation for LinkedList demo
+    LinkedList<LinkedListAscTraits<TX>> list;
+    auto elements = std::vector<pair<TX, Ref>>({{0, 10}, {1, 11}, {2, 12}, {3, 13}, {4, 14}});
+    for(auto& e : elements)
+        list.push_back(e.first, e.second);
+
+    TestContainer(list, {{5, 15}, {6, 16}, {7, 17}, {8, 18}, {9, 19}}, "list.txt");
+    list.write(std::cout);
+    // TestTraversal(list);
 }
