@@ -15,9 +15,17 @@ public:
     Ref  getRef()   const { return m_ref;   }
     T&   value()          { return m_value; } // acceso mutable para ApplyFunction
 
+    using Delim = std::istream::char_type;
+
     friend std::ostream &operator <<(std::ostream &os, const GeneralNode<T> &node) {
         os << "(" << node.getValue() << "," << node.getRef() << ")";
         return os;
+    }
+
+    friend std::istream &operator >>(std::istream &is, GeneralNode<T> &node){
+        Delim d;
+        is >> d >> node.m_value >> d >> node.m_ref >> d;
+        return is;
     }
 };
 
