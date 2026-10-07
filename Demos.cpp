@@ -93,6 +93,28 @@ void TestTraversal(Container &container) {
     }
 }
 
+// Prueba los recorridos hacia únicamente hacia adelante, especialmente para una LinkedList
+template <typename Container>
+void TestForwardTraversal(Container &container){
+    using Node = typename Container::Node;
+
+    cout << "Prueba de función call con std::cout para LinkedList [";
+    container.call(PrintNode<Node>, cout);
+    cout << "]" << endl;
+
+    cout << "Prueba de uso de iteradores para impresión: [";
+    for (auto &&node : container)
+        cout << node << " ";
+    cout << "]" << endl;
+
+    // Prueba de FirstThat(): primer nodo cuyo valor sea mayor que el primero
+    if (container.begin() != container.end()) {
+        auto threshold = (*container.begin()).getValue();
+        Node &found = container.FirstThat(IsGreaterThan<Node, decltype(threshold)>, threshold);
+        cout << "FirstThat (primer valor > " << threshold << "): " << found << endl;
+    }
+}
+
 void DemoVector() {
     // Dejamos los archivos vacios para que TestContainer acumule (append)
     // el estado del container tras cada paso
@@ -158,13 +180,42 @@ void DemoRaceCondition() {
 // TODO: Implementar DemoLinkedList() para probar la lista enlazada y sus iteradores.
 void DemoLinkedList()
 {
-    // Implementation for LinkedList demo
-    LinkedList<LinkedListAscTraits<TX>> list;
+    using IntLinkedList = LinkedList<LinkedListAscTraits<TX>>;
+
+    ofstream("linkedlist.txt", ios::trunc).close();
+
+    // Pruebas de pushback
+    IntLinkedList list;
+    TestContainer(list, {{5, 15}, {1, 11}, {8, 18}, {3, 13}}, "linkedlist.txt");
+    TestForwardTraversal(list);
+
     auto elements = std::vector<pair<TX, Ref>>({{0, 10}, {1, 11}, {2, 12}, {3, 13}, {4, 14}});
     for(auto& e : elements)
         list.push_back(e.first, e.second);
 
-    TestContainer(list, {{5, 15}, {6, 16}, {7, 17}, {8, 18}, {9, 19}}, "list.txt");
-    list.write(std::cout);
-    // TestTraversal(list);
+    // Pruebas de insert
+    list.insert(4, 12);
+    list.insert(11, 20);
+    list.insert(7, 6);
+    cout << "LinkedList luego de hacer 3 inserts " << list << endl;
+
+    // Prueba de apply function
+    list.ApplyFunction(AddOne);
+    cout << "LinkedList tras usar Add One a sus elementos: " << list << endl;
+    list.ApplyFunction(AddX<TX>, TX(10));
+    cout << "LinkedList tras usar AddX(10) a sus elementos: " << list << endl;
+
+    // Prueba de clear
+    list.clear();
+    cout << "LinkedList luego de usar clear" << list << endl;
+    list.push_back(10, 2);
+    cout << "LinkedList luego de un nuevo push_back " << list << endl;
+
+    // Prueba de lectura
+    IntLinkedList new_list;
+    ifstream in("linkedlist.txt");
+    in >> new_list;
+    in.close();
+    cout << "LinkedList leida desde archivo: " << new_list << endl;
+    TestForwardTraversal(new_list);
 }
