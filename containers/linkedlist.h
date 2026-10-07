@@ -26,19 +26,24 @@ public:
     LinkedListForwardIterator& operator++() { Parent::m_ptr = Parent::m_ptr->m_pNext; return *this; }
 };
 
-template <typename T, typename _Compare = std::less<T>>
-struct AscendingTraits {
+template <typename T, typename _Compare>
+struct DefaultTraits {
     using value_type        = T;
     using Compare           = _Compare;
 };
+template <typename T, typename _Compare = std::less<T>>
+struct AscendingTraits : public DefaultTraits<T, _Compare> {};
+
+template <typename T, typename _Compare = std::greater<T>>
+struct DescendingTraits : public DefaultTraits<T, _Compare> {};
 template <typename T>
-struct LinkedListAscTraits : public AscendingTraits<T, std::less<T>> {
+struct LinkedListAscTraits : public AscendingTraits<T> {
     using Node              = LinkedListNode<T>;
     using ForwardIterator   = LinkedListForwardIterator<T>;  // itera sobre Node, no sobre T
 };
 
 template <typename T>
-struct LinkedListDescTraits : public AscendingTraits<T, std::greater<T>> {
+struct LinkedListDescTraits : public DescendingTraits<T> {
     using Node              = LinkedListNode<T>;
     using ForwardIterator   = LinkedListForwardIterator<T>;  // itera sobre Node, no sobre T
 };
@@ -60,12 +65,15 @@ private:
 
     NodePtr GetRoot() const { return m_pRoot; }
     void internalInsert(const value_type& value, Ref ref, NodePtr& rParent);
-    void swap(LinkedList& otro) noexcept;
 
 public:
     LinkedList() {}
-    LinkedList(const LinkedList& otro); // no se permite copia
-    LinkedList& operator=(const LinkedList& otro); // no se permite asignacion
+    LinkedList(const LinkedList& another){ *this = another; } // copia profunda de la lista enlazada
+    LinkedList& operator=(const LinkedList& another); // no se permite asignacion
+    LinkedList(initializer_list<pair<value_type, Ref>> values) {
+        for (const auto &v : values)
+            push_back(v.first, v.second);
+    }
 
     void clear();
     virtual ~LinkedList(){ clear(); };
@@ -98,21 +106,19 @@ public:
     friend std::istream &operator >>(std::istream &is, LinkedList<Traits> &list) {
         Delim d;
         Node node;
-        LinkedList temp;
+        list.clear();
 
         is >> d;
         if (is >> d && d != ']'){
             is.unget();
             while(is >> node >> d){
-                temp.push_back(node.getValue(), node.getRef());
+                list.push_back(node.getValue(), node.getRef());
                 if (d == ']'){
                     break;
                 }
             }    
         }
 
-        std::lock_guard<std::mutex> lock(list.m_mutex);
-        list.swap(temp);
         return is; 
     }
     
@@ -122,61 +128,43 @@ public:
     ForwardIterator begin() const { return ForwardIterator(m_pRoot); }
     ForwardIterator end() const { return ForwardIterator(nullptr); }
 
-    template<typename Func, typename... Args>
-    decltype(auto) call(Func func, Args&&... args){
-        lock_guard<mutex> lock(this->m_mutex);
-        return ::call(begin(), end(), std::forward<Func>(func), std::forward<Args>(args)...);
-    }
-
     template <typename Func, typename... Args>
     void ApplyFunction(Func func, Args... args) {
         call(func, std::forward<Args>(args)...);
     }
-
     template <typename Func, typename... Args>
     Node& FirstThat(Func func, Args... args) {
         return call(func, std::forward<Args>(args)...);
     }
+    template<typename Func, typename... Args>
+    decltype(auto) call(Func func, Args&&... args)
+    {    lock_guard<mutex> lock(m_mutex);
+        if constexpr(is_void_v<invoke_result_t<Func, Node&, Args...>>)
+            ::call(begin(), end(), std::forward<Func>(func), std::forward<Args>(args)...);
+        else // return type is not void:
+            return ::call(begin(), end(), std::forward<Func>(func), std::forward<Args>(args)...);
+    }
 };
 
-template <typename Traits>
-void LinkedList<Traits>::swap(LinkedList& otro) noexcept{
-    std::swap(this->m_pRoot, otro.m_pRoot);
-    std::swap(this->m_pTail, otro.m_pTail);
-}
 
 template <typename Traits>
-LinkedList<Traits>::LinkedList(const LinkedList& otro){
-    std::lock_guard<std::mutex> lock(otro.m_mutex);
-    
-    if(!otro.m_pRoot){
+LinkedList<Traits>& LinkedList<Traits>::operator=(const LinkedList<Traits>& other){ 
+    clear();
+    if(!other.m_pRoot)
         return;
-    }
+    std::lock_guard<std::mutex> lock(other.m_mutex);
 
-    this->m_pRoot = new Node(otro.m_pRoot->getValue(), otro.m_pRoot->getRef(), nullptr);
+    m_pRoot = new Node(other.GetRoot()->getValue(), other.GetRoot()->getRef(), nullptr);
 
-    NodePtr next = otro.m_pRoot->m_pNext;
-    NodePtr curr = this->m_pRoot;
+    NodePtr next = other.m_pRoot->m_pNext;
+    NodePtr curr = m_pRoot;
 
     while(next){
         curr->m_pNext = new Node(next->getValue(), next->getRef(), nullptr);
         curr = curr->m_pNext;
         next = next->m_pNext;
     }
-
-    this->m_pTail = curr;
-}
-
-template <typename Traits>
-LinkedList<Traits>& LinkedList<Traits>::operator=(const LinkedList<Traits>& otro){ 
-    if (this == &otro){
-        return *this;
-    }
-
-    LinkedList temp(otro);
-    lock_guard<mutex> lock(m_mutex);
-    swap(temp);
-
+    m_pTail = curr;
     return *this;
 }
 
