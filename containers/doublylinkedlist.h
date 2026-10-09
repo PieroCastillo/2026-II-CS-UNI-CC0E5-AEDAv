@@ -168,7 +168,7 @@ template <typename Traits>
 DoublyLinkedList<Traits>& DoublyLinkedList<Traits>::operator=(const DoublyLinkedList<Traits>& other) {
     clear();
     if (!other.m_pRoot)
-        return;
+        return *this;
     std::lock_guard<std::mutex> lock(other.m_mutex);
 
     m_pRoot = new Node(other.GetRoot()->getValue(), other.GetRoot()->getRef(), nullptr);
