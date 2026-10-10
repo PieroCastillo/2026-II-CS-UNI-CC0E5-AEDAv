@@ -11,5 +11,7 @@ int main() {
     DemoRaceCondition();
     DemoLinkedList();
     DemoDoublyLinkedList();
+    DemoCircularLinkedList();
+    DemoCircularDoublyLinkedList();
     return 0;
 }

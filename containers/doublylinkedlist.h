@@ -62,35 +62,35 @@ public:
     using BackwardIterator = typename Traits::BackwardIterator;
     using Compare = typename Traits::Compare;
     using Delim = typename Node::Delim;
-private:
+protected:
     NodePtr m_pRoot = nullptr; // puntero al primer nodo de la lista enlazada
     NodePtr m_pTail = nullptr; // puntero al último nodo de la lista enlazada
 
     Compare m_comp; // comparador para ordenar los nodos de la lista
     mutable std::mutex m_mutex; // mutex para sincronización
 
-    NodePtr GetRoot() const { return m_pRoot; }
-    void internalInsert(const value_type& value, Ref ref, NodePtr& rParent);
+    virtual NodePtr GetRoot() const { return m_pRoot; }
+    virtual void internalInsert(const value_type& value, Ref ref, NodePtr&& rParent);
 
 public:
     DoublyLinkedList() {}
     DoublyLinkedList(const DoublyLinkedList& another) { *this = another; } // copia profunda de la lista enlazada
-    DoublyLinkedList& operator=(const DoublyLinkedList& another); // no se permite asignacion
+    virtual DoublyLinkedList& operator=(const DoublyLinkedList& another);
     DoublyLinkedList(initializer_list<pair<value_type, Ref>> values) {
         for (const auto& v : values)
             push_back(v.first, v.second);
     }
 
-    void clear();
+    virtual void clear();
     virtual ~DoublyLinkedList() { clear(); };
 
-    void push_back(const value_type& value, Ref ref);
+    virtual void push_back(const value_type& value, Ref ref);
 
-    bool empty() const { return m_pRoot == nullptr; }
+    virtual bool empty() const { return m_pRoot == nullptr; }
 
     void insert(const value_type& value, Ref ref) {
         scoped_lock lock(m_mutex);
-        internalInsert(value, ref, m_pRoot);
+        internalInsert(value, ref, GetRoot());
     }
 
     std::ostream& write(std::ostream& os) { return os << *this; }
@@ -129,10 +129,10 @@ public:
     }
 
     // Iterators
-    ForwardIterator begin() const { return ForwardIterator(m_pRoot); }
-    ForwardIterator end() const { return ForwardIterator(nullptr); }
-    BackwardIterator rbegin() const { return BackwardIterator(m_pTail); }
-    BackwardIterator rend() const { return BackwardIterator(nullptr); }
+    virtual ForwardIterator begin() const { return ForwardIterator(m_pRoot); }
+    virtual ForwardIterator end() const { return ForwardIterator(nullptr); }
+    virtual BackwardIterator rbegin() const { return BackwardIterator(m_pTail); }
+    virtual BackwardIterator rend() const { return BackwardIterator(nullptr); }
 
     template <typename Func, typename... Args>
     void ApplyFunction(Func func, Args... args) {
@@ -171,13 +171,13 @@ DoublyLinkedList<Traits>& DoublyLinkedList<Traits>::operator=(const DoublyLinked
         return *this;
     std::lock_guard<std::mutex> lock(other.m_mutex);
 
-    m_pRoot = new Node(other.GetRoot()->getValue(), other.GetRoot()->getRef(), nullptr);
+    m_pRoot = new Node(other.GetRoot()->getValue(), other.GetRoot()->getRef(), nullptr, nullptr);
 
     NodePtr next = other.m_pRoot->m_pNext;
     NodePtr curr = m_pRoot;
 
     while (next) {
-        curr->m_pNext = new Node(next->getValue(), next->getRef(), nullptr);
+        curr->m_pNext = new Node(next->getValue(), next->getRef(), nullptr, nullptr);
         curr = curr->m_pNext;
         next = next->m_pNext;
     }
@@ -190,7 +190,7 @@ void DoublyLinkedList<Traits>::clear() {
     scoped_lock lock(m_mutex);
     auto curr = m_pRoot;
 
-    while(curr)
+    while (curr)
     {
         auto next = curr->m_pNext;
         delete curr;
@@ -216,7 +216,7 @@ void DoublyLinkedList<Traits>::push_back(const value_type& value, Ref ref) {
 }
 
 template <typename Traits>
-void DoublyLinkedList<Traits>::internalInsert(const value_type& value, Ref ref, NodePtr& rParent) {
+void DoublyLinkedList<Traits>::internalInsert(const value_type& value, Ref ref, NodePtr&& rParent) {
     if (rParent == nullptr) {
         auto node = new Node(value, ref, nullptr, nullptr);
         m_pRoot = node;
@@ -224,7 +224,7 @@ void DoublyLinkedList<Traits>::internalInsert(const value_type& value, Ref ref, 
         return;
     }
 
-    if(rParent == m_pTail)
+    if (rParent == m_pTail)
     {
         auto node = new Node(value, ref, nullptr, m_pTail);
         m_pTail->m_pNext = node;

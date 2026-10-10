@@ -283,7 +283,7 @@ void DemoDoublyLinkedList()
 
 void DemoCircularLinkedList()
 {
-    using IntLinkedList = CircularList<CircularListAscTraits<TX>>;
+    using IntLinkedList = CircularList<LinkedListAscTraits<TX>>;
 
     ofstream("linkedlist.txt", ios::trunc).close();
 
@@ -325,7 +325,7 @@ void DemoCircularLinkedList()
 
 void DemoCircularDoublyLinkedList()
 {
-    using IntLinkedList = CircularDoublyLinkedList<CircularDoublyLinkedListAscTraits<TX>>;
+    using IntLinkedList = CircularDoublyLinkedList<DoublyLinkedListAscTraits<TX>>;
 
     ofstream("linkedlist.txt", ios::trunc).close();
 

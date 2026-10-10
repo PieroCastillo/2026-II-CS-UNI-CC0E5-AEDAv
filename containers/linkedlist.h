@@ -47,15 +47,15 @@ public:
     using ForwardIterator   = typename Traits::ForwardIterator;
     using Compare           = typename Traits::Compare;
     using Delim             = typename Node::Delim;
-private:
+protected:
     NodePtr m_pRoot = nullptr; // puntero al primer nodo de la lista enlazada
     NodePtr m_pTail = nullptr; // puntero al último nodo de la lista enlazada
     
     Compare m_comp; // comparador para ordenar los nodos de la lista
     mutable std::mutex m_mutex; // mutex para sincronización
 
-    NodePtr GetRoot() const { return m_pRoot; }
-    void internalInsert(const value_type& value, Ref ref, NodePtr& rParent);
+    virtual NodePtr GetRoot() const { return m_pRoot; }
+    virtual void internalInsert(const value_type& value, Ref ref, NodePtr&& rParent);
 
 public:
     LinkedList() {}
@@ -66,16 +66,16 @@ public:
             push_back(v.first, v.second);
     }
 
-    void clear();
+    virtual void clear();
     virtual ~LinkedList(){ clear(); };
 
-    void push_back(const value_type& value, Ref ref);
+    virtual void push_back(const value_type& value, Ref ref);
 
-    bool empty() const { return m_pRoot == nullptr; }
+    virtual bool empty() const { return m_pRoot == nullptr; }
 
     void insert(const value_type& value, Ref ref) {
         scoped_lock lock(m_mutex);
-        internalInsert(value, ref, m_pRoot);
+        internalInsert(value, ref, GetRoot());
     }
 
     std::ostream& write(std::ostream& os) { return os << *this; }
@@ -114,8 +114,8 @@ public:
     }
     
     // Iterators
-    ForwardIterator begin() const { return ForwardIterator(m_pRoot); }
-    ForwardIterator end() const { return ForwardIterator(nullptr); }
+    virtual ForwardIterator begin() const { return ForwardIterator(m_pRoot); }
+    virtual ForwardIterator end() const { return ForwardIterator(nullptr); }
 
     template <typename Func, typename... Args>
     void ApplyFunction(Func func, Args... args) {
@@ -192,12 +192,12 @@ si el nodo padre es nullptr, crea uno nuevo con el valor y retorna
 insert(...) empieza desde el nodo raiz
 */
 template <typename Traits>
-void LinkedList<Traits>::internalInsert(const value_type& value, Ref ref, NodePtr& rParent) {
+void LinkedList<Traits>::internalInsert(const value_type& value, Ref ref, NodePtr&& rParent) {
     if (rParent == nullptr || value < rParent->getValue()) {
         rParent = new Node(value, ref, rParent);
         m_pTail = rParent;
         return;
     }
-    internalInsert(value, ref, rParent->m_pNext);
+    internalInsert(value, ref, std::move(rParent->m_pNext));
 }
 #endif // __LINKEDLIST_H__
