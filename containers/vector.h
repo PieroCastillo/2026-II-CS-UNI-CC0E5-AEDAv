@@ -73,16 +73,17 @@ public:
             --m_size;
     }
 
-    Node& operator[](size_t index) {
+    Node& operator[](size_t index) const {
         if (index >= m_size) throw std::out_of_range("Indice fuera de rango");
         return m_data[index];
     }
 
-    Node& at(size_t index) {
+    Node& at(size_t index) const {
         if (index >= m_size) throw std::out_of_range("Indice fuera de rango");
         return m_data[index];
     }
 
+    Node* data() const { return m_data; }
     size_t size()     const { return m_size; }
     size_t capacity() const { return m_capacity; }
     bool   empty()    const { return m_size == 0; }

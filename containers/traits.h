@@ -48,4 +48,30 @@ struct VectorAscTraits : AscendingTraits<T> {
     using ForwardIterator = VectorForwardIterator<Node>;  // itera sobre Node, no sobre T
     using BackwardIterator = VectorBackwardIterator<Node>; // itera sobre Node, no sobre T
 };
+
+template <typename T>
+class HeapForwardIterator : public GeneralIterator<HeapForwardIterator<T>, T> {
+public:
+    using value_type = T;
+    using MySelf = HeapForwardIterator<T>;
+    using Parent = GeneralIterator<MySelf, T>;
+    using Parent::Parent; // Inherit constructor
+
+    // Prefix increment
+    HeapForwardIterator& operator++() { ++Parent::m_ptr; return *this; }
+};
+
+template <typename T, typename _Compare = std::less<T>>
+struct MinHeapTraits : DefaultTraits<T, _Compare> {
+    using value_type = T;
+    using Node = GeneralNode<T>;
+    using ForwardIterator = HeapForwardIterator<Node>;
+};
+
+template <typename T, typename _Compare = std::greater<T>>
+struct MaxHeapTraits : DefaultTraits<T, _Compare> {
+    using value_type = T;
+    using Node = GeneralNode<T>;
+    using ForwardIterator = HeapForwardIterator<Node>;
+};
 #endif // __TRAITS_H__

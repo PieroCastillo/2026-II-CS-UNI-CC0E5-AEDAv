@@ -27,7 +27,7 @@ protected:
 public:
     ContainerBase() = default;
     virtual ~ContainerBase() = default;
-    
+
     virtual void clear() = 0;
     virtual void push_back(const value_type& value, Ref ref) = 0;
     virtual ForwardIterator begin() const = 0;
@@ -49,29 +49,35 @@ public:
 
     friend std::istream& operator>>(std::istream& is, ContainerBase<Traits, AllowReverse>& container)
     {
-        Delim d;
-        value_type value;
-        Ref ref;
+        Delim d{};
+
+        if (!(is >> d) || d != '[') {
+            is.setstate(std::ios::failbit);
+            return is;
+        }
 
         container.clear();
+        Node node;
 
-        if (!(is >> d) || d != '[')
-            return is;
-
-        while (is >> d && d != ']')
-        {
-            is.unget();
-
-            if (!(is >> value >> d) || d != ',')
-                return is;
-            if (!(is >> ref >> d) || (d != ')' && d != ','))
+        while (is >> std::ws && is.peek() != ']') {
+            if (!(is >> node))
                 return is;
 
-            container.push_back(value, ref);
+            container.push_back(node.getValue(), node.getRef());
 
-            if (d == ']')
-                break;
+            if (!(is >> d) || d == ']')
+                return is;
+
+            if (d != ',') {
+                is.setstate(std::ios::failbit);
+                return is;
+            }
         }
+
+        if (is.peek() == ']')
+            is.get();
+        else
+            is.setstate(std::ios::failbit);
 
         return is;
     }
