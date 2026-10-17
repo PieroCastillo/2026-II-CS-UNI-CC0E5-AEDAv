@@ -6,14 +6,16 @@
 #include "GeneralNode.h"
 #include "../foreach.h"
 #include "../types.h" // Ref
+#include "containerbase.h"
+
 using namespace std;
 
 template <typename T>
 class VectorForwardIterator : public GeneralIterator<VectorForwardIterator<T>, T> {
 public:
-    using value_type        = T;
-    using MySelf            = VectorForwardIterator<T>;
-    using Parent            = GeneralIterator<MySelf, T>;
+    using value_type = T;
+    using MySelf = VectorForwardIterator<T>;
+    using Parent = GeneralIterator<MySelf, T>;
     using Parent::Parent; // Inherit constructor
 
     // Prefix increment
@@ -23,9 +25,9 @@ public:
 template <typename T>
 class VectorBackwardIterator : public GeneralIterator<VectorBackwardIterator<T>, T> {
 public:
-    using value_type        = T;
-    using MySelf            = VectorBackwardIterator<T>;
-    using Parent            = GeneralIterator<MySelf, T>;
+    using value_type = T;
+    using MySelf = VectorBackwardIterator<T>;
+    using Parent = GeneralIterator<MySelf, T>;
     using Parent::Parent; // Inherit constructor
 
     // Prefix increment
@@ -34,24 +36,23 @@ public:
 
 template <typename T>
 struct VectorAscTraits {
-    using value_type        = T;
-    using Node              = GeneralNode<T>;
-    using ForwardIterator   = VectorForwardIterator<Node>;  // itera sobre Node, no sobre T
-    using BackwardIterator  = VectorBackwardIterator<Node>; // itera sobre Node, no sobre T
+    using value_type = T;
+    using Node = GeneralNode<T>;
+    using ForwardIterator = VectorForwardIterator<Node>;  // itera sobre Node, no sobre T
+    using BackwardIterator = VectorBackwardIterator<Node>; // itera sobre Node, no sobre T
 };
 
 template <typename Traits>
-class Vector {
+class Vector : public ContainerBase<Traits, true> {
 public:
-    using value_type        = Traits::value_type;
-    using Node              = Traits::Node;
-    using ForwardIterator   = Traits::ForwardIterator;
-    using BackwardIterator  = Traits::BackwardIterator;
+    using value_type = Traits::value_type;
+    using Node = Traits::Node;
+    using ForwardIterator = Traits::ForwardIterator;
+    using BackwardIterator = Traits::BackwardIterator;
 private:
-    Node        *m_data     = nullptr;   // puntero al arreglo dinámico
-    size_t       m_size     = 0,         // cantidad actual
-                 m_capacity = 0;         // capacidad
-    mutex        m_mutex;                // mutex para sincronización
+    Node* m_data = nullptr;   // puntero al arreglo dinámico
+    size_t       m_size = 0,         // cantidad actual
+        m_capacity = 0;         // capacidad
 
     void resize(size_t new_cap) {
         if (new_cap <= m_capacity) return;
@@ -64,17 +65,8 @@ private:
     }
 
 public:
-    Vector() {}
-
-    // Cada elemento de la lista es una pareja (valor, ref) para un Node
-    Vector(initializer_list<pair<value_type, Ref>> values) {
-        for (const auto &v : values)
-            push_back(v.first, v.second);
-    }
-
-    virtual ~Vector() {
-        clear();
-    }
+    void push_back(const value_type& value, Ref ref) override;
+    void clear() override;
 
     Vector(const Vector& other) {
         resize(other.m_size);
@@ -85,8 +77,8 @@ public:
 
     // Move constructor and move assignment operator
     Vector(Vector&& other) noexcept {
-        m_data     = std::exchange(other.m_data, nullptr);
-        m_size     = std::exchange(other.m_size, 0);
+        m_data = std::exchange(other.m_data, nullptr);
+        m_size = std::exchange(other.m_size, 0);
         m_capacity = std::exchange(other.m_capacity, 0);
     }
 
@@ -94,25 +86,15 @@ public:
     Vector& operator=(Vector&& other) noexcept {
         if (this != &other) {
             clear();
-            m_data     = std::exchange(other.m_data, nullptr);
-            m_size     = std::exchange(other.m_size, 0);
+            m_data = std::exchange(other.m_data, nullptr);
+            m_size = std::exchange(other.m_size, 0);
             m_capacity = std::exchange(other.m_capacity, 0);
         }
         return *this;
     }
 
-    void push_back(const value_type& value, Ref ref) {
-        lock_guard<mutex> lock(m_mutex);
-        if (m_size == m_capacity) {
-            size_t new_cap = (m_capacity == 0) ? 10 : m_capacity * 2;
-            resize(new_cap);
-        }
-        m_data[m_size] = Node(value, ref);
-        ++m_size;
-    }
-
     void pop_back() {
-        lock_guard<mutex> lock(m_mutex);
+        lock_guard<mutex> lock(this->m_mutex);
         if (m_size > 0)
             --m_size;
     }
@@ -131,73 +113,37 @@ public:
     size_t capacity() const { return m_capacity; }
     bool   empty()    const { return m_size == 0; }
 
-    void clear() {
-        lock_guard<mutex> lock(m_mutex);
-        delete [] m_data;
-        m_data     = nullptr;
-        m_size     = 0;
-        m_capacity = 0;
-    }
-
-    ForwardIterator   begin() { return ForwardIterator(m_data); }
-    ForwardIterator   end()   { return ForwardIterator(m_data + m_size); }
     BackwardIterator rbegin() { return BackwardIterator(m_data + m_size - 1); }
-    BackwardIterator rend()   { return BackwardIterator(m_data - 1); }
+    BackwardIterator rend() { return BackwardIterator(m_data - 1); }
 
-    // Persistencia
-    ostream &write(ostream &os){
-        // TODO: convertirla en una linea que usa la funcion ApplyFunction generica
-        lock_guard<mutex> lock(m_mutex);
-        os << "[";
-        for (size_t i = 0; i < size()-1; ++i)
-            os << m_data[i] << ",";
-        if (size() > 0)
-            os << m_data[size()-1];
-        return os << "]";
-    }
-
-    // TODO: implementar la lectura de un vector desde un stream
-    istream &read(istream &is){
-        // Implementation for reading vector from stream
-    }
-
-    template <typename Func, typename... Args>
-    void ApplyFunction(Func func, Args... args) {
-        call(func, std::forward<Args>(args)...);
-    }
-    template <typename Func, typename... Args>
-    Node& FirstThat(Func func, Args... args) {
-        return call(func, std::forward<Args>(args)...);
-    }
-    template<typename Func, typename... Args>
-    decltype(auto) call(Func func, Args&&... args)
-    {    lock_guard<mutex> lock(m_mutex);
-        if constexpr(is_void_v<invoke_result_t<Func, Node&, Args...>>)
-            ::call(begin(), end(), std::forward<Func>(func), std::forward<Args>(args)...);
-        else // return type is not void:
-            return ::call(begin(), end(), std::forward<Func>(func), std::forward<Args>(args)...);
-    }
-
-    // Igual que call(), pero recorriendo el container en sentido inverso
-    // (rbegin()/rend()) en vez de hacia adelante.
     template<typename Func, typename... Args>
     decltype(auto) rcall(Func func, Args&&... args)
-    {    lock_guard<mutex> lock(m_mutex);
-        if constexpr(is_void_v<invoke_result_t<Func, Node&, Args...>>)
+    {
+        lock_guard<mutex> lock(this->m_mutex);
+        if constexpr (is_void_v<invoke_result_t<Func, Node&, Args...>>)
             ::call(rbegin(), rend(), std::forward<Func>(func), std::forward<Args>(args)...);
         else // return type is not void:
             return ::call(rbegin(), rend(), std::forward<Func>(func), std::forward<Args>(args)...);
     }
 };
 
-template <typename T>
-ostream& operator<<(ostream &os, Vector<T> &vec) {
-    return vec.write(os);
+template <typename Traits>
+void Vector<Traits>::clear() {
+    lock_guard<mutex> lock(this->m_mutex);
+    delete[] m_data;
+    m_data = nullptr;
+    m_size = 0;
+    m_capacity = 0;
 }
 
-template <typename T>
-istream& operator>>(istream &is, Vector<T> &vec) {
-    return vec.read(is);
+template <typename Traits>
+void  Vector<Traits>::push_back(const value_type& value, Ref ref) {
+    lock_guard<mutex> lock(this->m_mutex);
+    if (m_size == m_capacity) {
+        size_t new_cap = (m_capacity == 0) ? 10 : m_capacity * 2;
+        resize(new_cap);
+    }
+    m_data[m_size] = Node(value, ref);
+    ++m_size;
 }
-
 #endif // __VECTOR_H__
