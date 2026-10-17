@@ -4,35 +4,34 @@
 #include <mutex>
 #include "GeneralNode.h"
 #include "GeneralIterator.h"
+#include "traits.h"
 #include "../foreach.h"
 
 template<typename Traits, bool AllowReverse>
 class ContainerBase
 {
-private:
+public:
     using value_type = typename Traits::value_type;
     using Node = typename Traits::Node;
     using ForwardIterator = typename Traits::ForwardIterator;
     using Compare = typename Traits::Compare;
     using Delim = typename Traits::Delim;
-
+protected:
     mutable std::mutex m_mutex; // mutex para sincronización
-public:
-    ContainerBase() {}
-    ContainerBase(initializer_list<pair<value_type, Ref>> values) {
+
+    template<typename Self, typename Range>
+    void initialize(this Self& self, const Range& values) {
         for (const auto& v : values)
-            push_back(v.first, v.second);
+            self.push_back(v.first, v.second);
     }
-
-    virtual ~ContainerBase() {
-        clear();
-    }
-
-    virtual void clear();
-    virtual void push_back(const value_type& value, Ref ref);
-
-    virtual ForwardIterator begin() const;
-    virtual ForwardIterator end() const;
+public:
+    ContainerBase() = default;
+    virtual ~ContainerBase() = default;
+    
+    virtual void clear() = 0;
+    virtual void push_back(const value_type& value, Ref ref) = 0;
+    virtual ForwardIterator begin() const = 0;
+    virtual ForwardIterator end() const = 0;
 
     std::ostream& write(std::ostream& os) { return os << *this; }
     std::istream& read(std::istream& is) { return is >> *this; }

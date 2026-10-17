@@ -6,41 +6,10 @@
 #include "GeneralNode.h"
 #include "../foreach.h"
 #include "../types.h" // Ref
+#include "traits.h"
 #include "containerbase.h"
 
 using namespace std;
-
-template <typename T>
-class VectorForwardIterator : public GeneralIterator<VectorForwardIterator<T>, T> {
-public:
-    using value_type = T;
-    using MySelf = VectorForwardIterator<T>;
-    using Parent = GeneralIterator<MySelf, T>;
-    using Parent::Parent; // Inherit constructor
-
-    // Prefix increment
-    VectorForwardIterator& operator++() { ++Parent::m_ptr; return *this; }
-};
-
-template <typename T>
-class VectorBackwardIterator : public GeneralIterator<VectorBackwardIterator<T>, T> {
-public:
-    using value_type = T;
-    using MySelf = VectorBackwardIterator<T>;
-    using Parent = GeneralIterator<MySelf, T>;
-    using Parent::Parent; // Inherit constructor
-
-    // Prefix increment
-    VectorBackwardIterator& operator++() { --Parent::m_ptr; return *this; }
-};
-
-template <typename T>
-struct VectorAscTraits {
-    using value_type = T;
-    using Node = GeneralNode<T>;
-    using ForwardIterator = VectorForwardIterator<Node>;  // itera sobre Node, no sobre T
-    using BackwardIterator = VectorBackwardIterator<Node>; // itera sobre Node, no sobre T
-};
 
 template <typename Traits>
 class Vector : public ContainerBase<Traits, true> {
@@ -49,6 +18,8 @@ public:
     using Node = Traits::Node;
     using ForwardIterator = Traits::ForwardIterator;
     using BackwardIterator = Traits::BackwardIterator;
+    using Base = ContainerBase<Traits, true>;
+    using Base::Base;
 private:
     Node* m_data = nullptr;   // puntero al arreglo dinámico
     size_t       m_size = 0,         // cantidad actual
@@ -68,6 +39,9 @@ public:
     void push_back(const value_type& value, Ref ref) override;
     void clear() override;
 
+    Vector() = default;
+    ~Vector() override { clear(); };
+    Vector(std::initializer_list<std::pair<value_type, Ref>> values) { this->initialize(values); }
     Vector(const Vector& other) {
         resize(other.m_size);
         for (size_t i = 0; i < other.m_size; ++i)
@@ -113,6 +87,8 @@ public:
     size_t capacity() const { return m_capacity; }
     bool   empty()    const { return m_size == 0; }
 
+    ForwardIterator begin() const override { return ForwardIterator(m_data); }
+    ForwardIterator end() const override { return ForwardIterator(m_data + m_size); }
     BackwardIterator rbegin() { return BackwardIterator(m_data + m_size - 1); }
     BackwardIterator rend() { return BackwardIterator(m_data - 1); }
 
@@ -137,7 +113,7 @@ void Vector<Traits>::clear() {
 }
 
 template <typename Traits>
-void  Vector<Traits>::push_back(const value_type& value, Ref ref) {
+void Vector<Traits>::push_back(const value_type& value, Ref ref) {
     lock_guard<mutex> lock(this->m_mutex);
     if (m_size == m_capacity) {
         size_t new_cap = (m_capacity == 0) ? 10 : m_capacity * 2;

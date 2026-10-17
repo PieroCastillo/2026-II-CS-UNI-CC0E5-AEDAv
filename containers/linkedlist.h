@@ -27,50 +27,48 @@ public:
     LinkedListForwardIterator& operator++() { Parent::m_ptr = Parent::m_ptr->m_pNext; return *this; }
 };
 
-template <typename T, typename _Compare>
-struct DefaultTraits {
-    using value_type        = T;
-    using Compare           = _Compare;
-};
-template <typename T, typename _Compare = std::less<T>>
-struct AscendingTraits : public DefaultTraits<T, _Compare> {};
-
-template <typename T, typename _Compare = std::greater<T>>
-struct DescendingTraits : public DefaultTraits<T, _Compare> {};
 template <typename T>
 struct LinkedListAscTraits : public AscendingTraits<T> {
-    using Node              = LinkedListNode<T>;
-    using ForwardIterator   = LinkedListForwardIterator<T>;  // itera sobre Node, no sobre T
+    using Node = LinkedListNode<T>;
+    using ForwardIterator = LinkedListForwardIterator<T>;  // itera sobre Node, no sobre T
 };
 
 template <typename T>
 struct LinkedListDescTraits : public DescendingTraits<T> {
-    using Node              = LinkedListNode<T>;
-    using ForwardIterator   = LinkedListForwardIterator<T>;  // itera sobre Node, no sobre T
+    using Node = LinkedListNode<T>;
+    using ForwardIterator = LinkedListForwardIterator<T>;  // itera sobre Node, no sobre T
 };
 template <typename Traits>
-class LinkedList : public ContainerBase<Traits, false>{
+class LinkedList : public ContainerBase<Traits, false> {
 public:
-    using value_type        = typename Traits::value_type;
-    using Node              = typename Traits::Node;
-    using NodePtr           = Node *;
-    using ForwardIterator   = typename Traits::ForwardIterator;
-    using Compare           = typename Traits::Compare;
-    using Delim             = typename Node::Delim;
+    using value_type = typename Traits::value_type;
+    using Node = typename Traits::Node;
+    using NodePtr = Node*;
+    using ForwardIterator = typename Traits::ForwardIterator;
+    using Compare = typename Traits::Compare;
+    using Delim = typename Node::Delim;
+    using Base = ContainerBase<Traits, false>;
+    using Base::Base;
 private:
     NodePtr m_pRoot = nullptr; // puntero al primer nodo de la lista enlazada
     NodePtr m_pTail = nullptr; // puntero al último nodo de la lista enlazada
-    
+
     Compare m_comp; // comparador para ordenar los nodos de la lista
 
     NodePtr GetRoot() const { return m_pRoot; }
     void internalInsert(const value_type& value, Ref ref, NodePtr& rParent);
 public:
-    LinkedList(const LinkedList& another){ *this = another; } // copia profunda de la lista enlazada
+    LinkedList() = default;
+    ~LinkedList() override { clear(); };
+    LinkedList(std::initializer_list<std::pair<value_type, Ref>> values) { this->initialize(values); }
+    LinkedList(const LinkedList& another) { *this = another; } // copia profunda de la lista enlazada
     LinkedList& operator=(const LinkedList& another);
 
-    void clear() override;
+    ForwardIterator begin() const override { return ForwardIterator(m_pRoot); }
+    ForwardIterator end() const override { return ForwardIterator(nullptr); }
+
     void push_back(const value_type& value, Ref ref) override;
+    void clear() override;
 
     bool empty() const { return m_pRoot == nullptr; }
 
@@ -82,9 +80,9 @@ public:
 
 
 template <typename Traits>
-LinkedList<Traits>& LinkedList<Traits>::operator=(const LinkedList<Traits>& other){ 
+LinkedList<Traits>& LinkedList<Traits>::operator=(const LinkedList<Traits>& other) {
     clear();
-    if(!other.m_pRoot)
+    if (!other.m_pRoot)
         return;
     std::lock_guard<std::mutex> lock(other.m_mutex);
 
@@ -93,7 +91,7 @@ LinkedList<Traits>& LinkedList<Traits>::operator=(const LinkedList<Traits>& othe
     NodePtr next = other.m_pRoot->m_pNext;
     NodePtr curr = m_pRoot;
 
-    while(next){
+    while (next) {
         curr->m_pNext = new Node(next->getValue(), next->getRef(), nullptr);
         curr = curr->m_pNext;
         next = next->m_pNext;
@@ -103,7 +101,7 @@ LinkedList<Traits>& LinkedList<Traits>::operator=(const LinkedList<Traits>& othe
 }
 
 template <typename Traits>
-void LinkedList<Traits>::clear(){
+void LinkedList<Traits>::clear() {
     scoped_lock lock(this->m_mutex);
     auto* curr = m_pRoot;
     while (curr != nullptr)
@@ -116,13 +114,14 @@ void LinkedList<Traits>::clear(){
 }
 
 template<typename Traits>
-void LinkedList<Traits>::push_back(const value_type& value, Ref ref){
+void LinkedList<Traits>::push_back(const value_type& value, Ref ref) {
     scoped_lock lock(this->m_mutex);
     NodePtr new_node = new Node(value, ref, nullptr);
-    if (!this->m_pRoot){
+    if (!this->m_pRoot) {
         this->m_pRoot = new_node;
         this->m_pTail = new_node;
-    } else {
+    }
+    else {
         this->m_pTail->m_pNext = new_node;
         this->m_pTail = new_node;
     }
