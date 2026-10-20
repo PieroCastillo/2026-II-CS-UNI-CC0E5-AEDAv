@@ -7,7 +7,7 @@
 #include "traits.h"
 #include "../foreach.h"
 
-template<typename Traits, bool AllowReverse>
+template<typename Traits>
 class ContainerBase
 {
 public:
@@ -36,7 +36,7 @@ public:
     std::ostream& write(std::ostream& os) { return os << *this; }
     std::istream& read(std::istream& is) { return is >> *this; }
 
-    friend ostream& operator <<(ostream& os, const ContainerBase<Traits, AllowReverse>& container) {
+    friend ostream& operator <<(ostream& os, const ContainerBase<Traits>& container) {
         os << "[";
         for (auto it = container.begin(); it != container.end(); ++it) {
             os << *it;
@@ -47,7 +47,7 @@ public:
         return os << "]";
     }
 
-    friend std::istream& operator>>(std::istream& is, ContainerBase<Traits, AllowReverse>& container)
+    friend std::istream& operator>>(std::istream& is, ContainerBase<Traits>& container)
     {
         Delim d{};
 
@@ -98,6 +98,28 @@ public:
             ::call(begin(), end(), std::forward<Func>(func), std::forward<Args>(args)...);
         else // return type is not void:
             return ::call(begin(), end(), std::forward<Func>(func), std::forward<Args>(args)...);
+    }
+};
+
+template<typename Traits>
+class ReversibleContainerBase : public ContainerBase<Traits>
+{
+public:
+    using value_type = typename Traits::value_type;
+    using Node = typename Traits::Node;
+    using BackwardIterator = typename Traits::BackwardIterator;
+public:
+    virtual BackwardIterator rbegin() const = 0;
+    virtual BackwardIterator rend() const = 0;
+
+    template<typename Func, typename... Args>
+    decltype(auto) rcall(Func func, Args&&... args)
+    {
+        lock_guard<mutex> lock(this->m_mutex);
+        if constexpr (is_void_v<invoke_result_t<Func, Node&, Args...>>)
+            ::call(rbegin(), rend(), std::forward<Func>(func), std::forward<Args>(args)...);
+        else // return type is not void:
+            return ::call(rbegin(), rend(), std::forward<Func>(func), std::forward<Args>(args)...);
     }
 };
 #endif // __CONTAINERBASE_H__

@@ -8,6 +8,7 @@
 #include "containers/vector.h"
 #include "containers/linkedlist.h"
 #include "containers/Heap.h"
+#include "containers/binarytree.h"
 #include "Demos.h"
 using namespace std;
 
@@ -255,4 +256,45 @@ void DemoHeap()
         cout << node.getValue() << " ";
     }
     cout << endl;
+}
+
+void DemoBinaryTree()
+{
+    using IntBinaryTree = BinaryTree<BinaryTreeAscTraits<TX>>;
+
+    IntBinaryTree tree({ { 5, 15 },{ 1, 11 },{ 8, 18 },{ 3, 13 },{ 7, 17 },{ 9, 19 } });
+
+    cout << "BinaryTree tras insertar elementos: " << tree << endl;
+
+    TestTraversal(tree);
+
+    cout << "Prueba de iteradores para impresion: [";
+    for (auto&& node : tree)
+        cout << node << " ";
+    cout << "]" << endl;
+
+    tree.insert(4, 14);
+    tree.insert(6, 16);
+    tree.insert(2, 12);
+
+    cout << "BinaryTree luego de hacer 3 inserts: " << tree << endl;
+    tree.ApplyFunction(AddOne);
+    cout << "BinaryTree tras usar AddOne: " << tree << endl;
+
+    tree.ApplyFunction(AddX<TX>, TX(10));
+    cout << "BinaryTree tras usar AddX(10): " << tree << endl;
+
+    cout << "Recorrido inverso con iteradores: [";
+    for (auto it = tree.rbegin(); it != tree.rend(); ++it)
+        cout << *it << " ";
+    cout << "]" << endl;
+
+    tree.clear();
+    cout << "BinaryTree luego de usar clear(): " << tree << endl;
+
+    tree.insert(10, 20);
+    tree.insert(5, 15);
+    tree.insert(15, 25);
+    cout << "BinaryTree luego de insertar despues de clear(): "
+        << tree << endl;
 }

@@ -12,13 +12,13 @@
 using namespace std;
 
 template <typename Traits>
-class Vector : public ContainerBase<Traits, true> {
+class Vector : public ReversibleContainerBase<Traits> {
 public:
     using value_type = Traits::value_type;
     using Node = Traits::Node;
     using ForwardIterator = Traits::ForwardIterator;
     using BackwardIterator = Traits::BackwardIterator;
-    using Base = ContainerBase<Traits, true>;
+    using Base = ReversibleContainerBase<Traits>;
     using Base::Base;
 private:
     Node* m_data = nullptr;   // puntero al arreglo dinámico
@@ -90,18 +90,8 @@ public:
 
     ForwardIterator begin() const override { return ForwardIterator(m_data); }
     ForwardIterator end() const override { return ForwardIterator(m_data + m_size); }
-    BackwardIterator rbegin() { return BackwardIterator(m_data + m_size - 1); }
-    BackwardIterator rend() { return BackwardIterator(m_data - 1); }
-
-    template<typename Func, typename... Args>
-    decltype(auto) rcall(Func func, Args&&... args)
-    {
-        lock_guard<mutex> lock(this->m_mutex);
-        if constexpr (is_void_v<invoke_result_t<Func, Node&, Args...>>)
-            ::call(rbegin(), rend(), std::forward<Func>(func), std::forward<Args>(args)...);
-        else // return type is not void:
-            return ::call(rbegin(), rend(), std::forward<Func>(func), std::forward<Args>(args)...);
-    }
+    BackwardIterator rbegin() const override { return BackwardIterator(m_data + m_size - 1); }
+    BackwardIterator rend() const override { return BackwardIterator(m_data - 1); };
 };
 
 template <typename Traits>

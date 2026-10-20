@@ -4,7 +4,7 @@
 #include "containerbase.h"
 
 template <typename Traits>
-class Heap : public ContainerBase<Traits, false> {
+class Heap : public ContainerBase<Traits> {
 public:
     using value_type = typename Traits::value_type;
     using ForwardIterator = Traits::ForwardIterator;

@@ -39,7 +39,7 @@ struct LinkedListDescTraits : public DescendingTraits<T> {
     using ForwardIterator = LinkedListForwardIterator<T>;  // itera sobre Node, no sobre T
 };
 template <typename Traits>
-class LinkedList : public ContainerBase<Traits, false> {
+class LinkedList : public ContainerBase<Traits> {
 public:
     using value_type = typename Traits::value_type;
     using Node = typename Traits::Node;
@@ -47,7 +47,7 @@ public:
     using ForwardIterator = typename Traits::ForwardIterator;
     using Compare = typename Traits::Compare;
     using Delim = typename Node::Delim;
-    using Base = ContainerBase<Traits, false>;
+    using Base = ContainerBase<Traits>;
     using Base::Base;
 private:
     NodePtr m_pRoot = nullptr; // puntero al primer nodo de la lista enlazada
