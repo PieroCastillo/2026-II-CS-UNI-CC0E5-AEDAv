@@ -102,7 +102,7 @@ public:
 };
 
 template<typename Traits>
-class ReversibleContainerBase : public ContainerBase<Traits>
+class ReversibleContainerBase : public virtual ContainerBase<Traits>
 {
 public:
     using value_type = typename Traits::value_type;

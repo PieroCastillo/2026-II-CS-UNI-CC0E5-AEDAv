@@ -70,3 +70,6 @@ Testing/
 .cache/
 main
 .xmake/
+
+# Archivos de texto generados
+*.txt
