@@ -72,3 +72,5 @@ main
 
 # Archivos de texto generados
 *.txt
+.xmake
+.vscode
