@@ -4,18 +4,19 @@
 #include "GeneralIterator.h"
 #include "GeneralContainer.h"
 #include "mixins.h"
+#include <string>
 
 template <typename T, typename Derivated>
 class BaseBinaryTreeNode : public GeneralNode<T> {
 public:
-    using value_type        = T;
-    using MySelf            = Derivated;
-    using Node              = MySelf;
-    using NodePtr           = Node*;
-    using Parent            = GeneralNode<T>;
+    using value_type = T;
+    using MySelf = Derivated;
+    using Node = MySelf;
+    using NodePtr = Node*;
+    using Parent = GeneralNode<T>;
     using Parent::Parent; // Inherit constructor
 
-    NodePtr m_pChild[2] = {nullptr, nullptr}; // left and right children
+    NodePtr m_pChild[2] = { nullptr, nullptr }; // left and right children
     NodePtr m_parent = nullptr;
 
 };
@@ -53,14 +54,15 @@ auto BaseBinaryTreeIterator<T, Dir, Node>::operator++() -> MySelf& {
     auto node = Parent::m_ptr;
     if (node == nullptr)
         return *this;
-    if (node->m_pChild[1-Dir]) {
-        node = node->m_pChild[1-Dir];
+    if (node->m_pChild[1 - Dir]) {
+        node = node->m_pChild[1 - Dir];
         while (node->m_pChild[Dir])
             node = node->m_pChild[Dir];
         Parent::m_ptr = node;
-    } else {
+    }
+    else {
         auto parent = node->m_parent;
-        while (parent && node == parent->m_pChild[1-Dir]) {
+        while (parent && node == parent->m_pChild[1 - Dir]) {
             node = parent;
             parent = parent->m_parent;
         }
@@ -78,9 +80,9 @@ using BinaryTreeBackwardIterator = BinaryTreeIterator<T, 1>;
 
 template <typename T>
 struct BinaryTreeTraits {
-    using Node              = BinaryTreeNode<T>;
-    using ForwardIterator   = BinaryTreeForwardIterator<T>;
-    using BackwardIterator  = BinaryTreeBackwardIterator<T>;
+    using Node = BinaryTreeNode<T>;
+    using ForwardIterator = BinaryTreeForwardIterator<T>;
+    using BackwardIterator = BinaryTreeBackwardIterator<T>;
 };
 
 template <typename T>
@@ -145,7 +147,45 @@ public:
 
     BaseBinaryTree& operator=(const BaseBinaryTree& another);
     BaseBinaryTree& operator=(BaseBinaryTree&& another) noexcept;
+
+    void visualize() const;
+    void visualize_recursive(NodePtr node, const std::string& prefix, bool isLast, bool isRoot) const;
 };
+
+template <typename Traits, template <typename> typename... Mixins>
+void BaseBinaryTree<Traits, Mixins...>::visualize() const {
+    std::lock_guard lock(this->m_mutex);
+
+    if (!m_root) {
+        std::cout << "(empty tree)" << std::endl;
+        return;
+    }
+
+    visualize_recursive(m_root, "", true, true);
+}
+
+template <typename Traits, template <typename> typename... Mixins>
+void BaseBinaryTree<Traits, Mixins...>::visualize_recursive(NodePtr node, const std::string& prefix, bool isLast, bool isRoot) const {
+    if (!node)
+        return;
+
+    if (isRoot)
+        std::cout << node->getValue() << '\n';
+    else
+        std::cout << prefix << (isLast ? "└── " : "├── ") << node->getValue() << '\n';
+
+    const std::string nextPrefix =
+        prefix + (isRoot ? "" : (isLast ? "    " : "│   "));
+
+    const bool hasLeft = node->m_pChild[0] != nullptr;
+    const bool hasRight = node->m_pChild[1] != nullptr;
+
+    if (hasLeft)
+        visualize_recursive(node->m_pChild[0], nextPrefix, !hasRight, false);
+
+    if (hasRight)
+        visualize_recursive(node->m_pChild[1], nextPrefix, true, false);
+}
 
 template <typename Traits, template <typename> typename... Mixins>
 void BaseBinaryTree<Traits, Mixins...>::internal_insert(NodePtr& node, const value_type& value, Ref ref, NodePtr parent) {
@@ -155,7 +195,7 @@ void BaseBinaryTree<Traits, Mixins...>::internal_insert(NodePtr& node, const val
         return;
     }
     auto branch = Compare()(node->getValue(), value);
-    internal_insert(node->m_pChild[branch], value, ref, node); // Tail recursion to insert in the correct branch
+    internal_insert(node->m_pChild[branch], value, ref, node);
 }
 
 template <typename Traits, template <typename> typename... Mixins>
@@ -195,7 +235,7 @@ auto BaseBinaryTree<Traits, Mixins...>::operator=(const BaseBinaryTree& another)
 
 template <typename Traits, template <typename> typename... Mixins>
 auto BaseBinaryTree<Traits, Mixins...>::operator=(BaseBinaryTree&& another) noexcept -> BaseBinaryTree& {
-    this->move_from(another, [&]{ m_root = std::exchange(another.m_root, nullptr); });
+    this->move_from(another, [&] { m_root = std::exchange(another.m_root, nullptr); });
     return *this;
 }
 
@@ -209,15 +249,17 @@ void BaseBinaryTree<Traits, Mixins...>::remove(NodePtr node) {
     auto transplant = [&](NodePtr u, NodePtr v) {
         if (!u->m_parent) {
             m_root = v;
-        } else if (u == u->m_parent->m_pChild[0]) {
+        }
+        else if (u == u->m_parent->m_pChild[0]) {
             u->m_parent->m_pChild[0] = v;
-        } else {
+        }
+        else {
             u->m_parent->m_pChild[1] = v;
         }
 
         if (v)
             v->m_parent = u->m_parent;
-    };
+        };
 
     if (!node->m_pChild[0]) {
         transplant(node, node->m_pChild[1]);

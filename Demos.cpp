@@ -11,7 +11,7 @@
 #include "containers/circulardoublelinkedlist.h"
 #include "containers/Heap.h"
 #include "containers/binarytree.h"
-#include "containers/AVLtree.h"
+#include "containers/avltree.h"
 #include "utilities/printcolored.h"
 #include "Demos.h"
 using namespace std;
@@ -355,6 +355,7 @@ void DemoBinaryTree() {
     PrintColored(cout, "Pruebas para BinaryTree", Color::Yellow);
     BinaryTree<BinaryTreeAscTraits<TX>> tree;
     TestBinaryTree(tree, "binarytree.txt");
+    tree.visualize();
 }
 
 void DemoAvlTree()
@@ -363,4 +364,5 @@ void DemoAvlTree()
     PrintColored(cout, "Pruebas para AvlTree", Color::Yellow);
     AvlTree<AvlTreeAscTraits<TX>> tree;
     TestBinaryTree(tree, "binarytree.txt");
+    tree.visualize();
 }
