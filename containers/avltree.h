@@ -5,6 +5,7 @@
 #include "GeneralContainer.h"
 #include "mixins.h"
 #include "binarytree.h"
+#include <fstream>
 
 template <typename T>
 class AVLTreeNode : public BaseBinaryTreeNode<T, AVLTreeNode<T>> {
@@ -47,6 +48,15 @@ template <typename T>
 struct AvlTreeDescTraits : public DescendingTraits<T>, public AvlTreeTraits<T> {};
 
 template <typename Traits>
+class AvlTree;
+
+template <typename Traits>
+std::ostream& operator<<(std::ostream& os, const AvlTree<Traits>& tree);
+
+template <typename Traits>
+std::istream& operator>>(std::istream& is, AvlTree<Traits>& tree);
+
+template <typename Traits>
 class AvlTree : public BinaryTree<Traits> {
 public:
     using MySelf = AvlTree;
@@ -87,7 +97,67 @@ public:
 
     AvlTree& operator=(const AvlTree& another);
     AvlTree& operator=(AvlTree&& another) noexcept;
+
+    auto operator[](const value_type& value) const->NodePtr;
+
+    friend std::ostream& operator<< <Traits>(std::ostream& os, const AvlTree& tree);
+    friend std::istream& operator>> <Traits>(std::istream& is, AvlTree& tree);
 };
+
+template <typename Traits>
+std::ostream& operator<<(std::ostream& os, const AvlTree<Traits>& tree)
+{
+    uint32_t count = 0;
+
+    for (auto it = tree.begin(); it != tree.end(); ++it)
+        ++count;
+
+    os << count << '\n';
+
+    for (auto it = tree.begin(); it != tree.end(); ++it)
+        os << *it << '\n';
+
+    return os;
+}
+
+template <typename Traits>
+std::istream& operator>>(std::istream& is, AvlTree<Traits>& tree)
+{
+    uint32_t count;
+
+    if (!(is >> count))
+        return is;
+
+    AvlTree<Traits> temp;
+
+    for (std::size_t i = 0; i < count; ++i) {
+        typename Traits::value_type value;
+
+        if (!(is >> value))
+            return is;
+
+        temp.insert(value, Ref{});
+    }
+
+    tree = std::move(temp);
+    return is;
+}
+
+template <typename Traits>
+auto AvlTree<Traits>::operator[](const value_type& value) const -> NodePtr
+{
+    auto node = this->m_root;
+
+    while (node) {
+        if (node->getValue() == value)
+            return node;
+
+        const auto branch = Compare()(node->getValue(), value);
+        node = node->m_pChild[branch];
+    }
+
+    return nullptr;
+}
 
 template <typename Traits>
 AvlTree<Traits>& AvlTree<Traits>::operator=(const AvlTree<Traits>& another)
