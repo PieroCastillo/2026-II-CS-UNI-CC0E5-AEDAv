@@ -363,6 +363,6 @@ void DemoAvlTree()
     cout << "\n";
     PrintColored(cout, "Pruebas para AvlTree", Color::Yellow);
     AvlTree<AvlTreeAscTraits<TX>> tree;
-    TestBinaryTree(tree, "binarytree.txt");
+    TestBinaryTree(tree, "avltree.txt");
     tree.visualize();
 }

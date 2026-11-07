@@ -17,22 +17,14 @@ public:
     using Parent = BaseBinaryTreeNode<T, AVLTreeNode<T>>;
     using Parent::Parent;
 
-    int m_height = 1;
-};
-
-template <typename T, TX Dir>
-class AvlTreeIterator : public BaseBinaryTreeIterator<T, Dir, AVLTreeNode<T>>
-{
-public:
-    using Parent = BaseBinaryTreeIterator<T, Dir, AVLTreeNode<T>>;
-    using Parent::Parent;
+    size_t m_height = 1;
 };
 
 template <typename T>
-using AvlTreeForwardIterator = AvlTreeIterator<T, 0>;
+using AvlTreeForwardIterator = BaseBinaryTreeIterator<T, 0, AVLTreeNode<T>>;
 
 template <typename T>
-using AvlTreeBackwardIterator = AvlTreeIterator<T, 1>;
+using AvlTreeBackwardIterator = BaseBinaryTreeIterator<T, 1, AVLTreeNode<T>>;
 
 template <typename T>
 struct AvlTreeTraits : public BinaryTreeTraits<T> {
@@ -47,14 +39,14 @@ struct AvlTreeAscTraits : public AscendingTraits<T>, public AvlTreeTraits<T> {};
 template <typename T>
 struct AvlTreeDescTraits : public DescendingTraits<T>, public AvlTreeTraits<T> {};
 
-template <typename Traits>
-class AvlTree;
+// template <typename Traits>
+// class AvlTree;
 
-template <typename Traits>
-std::ostream& operator<<(std::ostream& os, const AvlTree<Traits>& tree);
+// template <typename Traits>
+// std::ostream& operator<<(std::ostream& os, const AvlTree<Traits>& tree);
 
-template <typename Traits>
-std::istream& operator>>(std::istream& is, AvlTree<Traits>& tree);
+// template <typename Traits>
+// std::istream& operator>>(std::istream& is, AvlTree<Traits>& tree);
 
 template <typename Traits>
 class AvlTree : public BinaryTree<Traits> {
@@ -87,7 +79,7 @@ protected:
     using Parent::m_mutex;
     using Parent::m_root;
 
-    void internal_insert(NodePtr& node, const value_type& value, Ref ref, NodePtr parent = nullptr) override;
+    NodePtr internal_insert(NodePtr& node, const value_type& value, Ref ref, NodePtr parent = nullptr) override;
 public:
     AvlTree() = default;
     AvlTree(const AvlTree& another) { *this = another; }
@@ -100,48 +92,48 @@ public:
 
     auto operator[](const value_type& value) const->NodePtr;
 
-    friend std::ostream& operator<< <Traits>(std::ostream& os, const AvlTree& tree);
-    friend std::istream& operator>> <Traits>(std::istream& is, AvlTree& tree);
+    // friend std::ostream& operator<< <Traits>(std::ostream& os, const AvlTree& tree);
+    // friend std::istream& operator>> <Traits>(std::istream& is, AvlTree& tree);
 };
 
-template <typename Traits>
-std::ostream& operator<<(std::ostream& os, const AvlTree<Traits>& tree)
-{
-    uint32_t count = 0;
+// template <typename Traits>
+// std::ostream& operator<<(std::ostream& os, const AvlTree<Traits>& tree)
+// {
+//     uint32_t count = 0;
 
-    for (auto it = tree.begin(); it != tree.end(); ++it)
-        ++count;
+//     for (auto it = tree.begin(); it != tree.end(); ++it)
+//         ++count;
 
-    os << count << '\n';
+//     os << count << '\n';
 
-    for (auto it = tree.begin(); it != tree.end(); ++it)
-        os << *it << '\n';
+//     for (auto it = tree.begin(); it != tree.end(); ++it)
+//         os << *it << '\n';
 
-    return os;
-}
+//     return os;
+// }
 
-template <typename Traits>
-std::istream& operator>>(std::istream& is, AvlTree<Traits>& tree)
-{
-    uint32_t count;
+// template <typename Traits>
+// std::istream& operator>>(std::istream& is, AvlTree<Traits>& tree)
+// {
+//     uint32_t count;
 
-    if (!(is >> count))
-        return is;
+//     if (!(is >> count))
+//         return is;
 
-    AvlTree<Traits> temp;
+//     AvlTree<Traits> temp;
 
-    for (std::size_t i = 0; i < count; ++i) {
-        typename Traits::value_type value;
+//     for (std::size_t i = 0; i < count; ++i) {
+//         typename Traits::value_type value;
 
-        if (!(is >> value))
-            return is;
+//         if (!(is >> value))
+//             return is;
 
-        temp.insert(value, Ref{});
-    }
+//         temp.insert(value, Ref{});
+//     }
 
-    tree = std::move(temp);
-    return is;
-}
+//     tree = std::move(temp);
+//     return is;
+// }
 
 template <typename Traits>
 auto AvlTree<Traits>::operator[](const value_type& value) const -> NodePtr
@@ -174,18 +166,15 @@ AvlTree<Traits>& AvlTree<Traits>::operator=(AvlTree<Traits>&& another) noexcept
 }
 
 template <typename Traits>
-void AvlTree<Traits>::internal_insert(NodePtr& node, const value_type& value, Ref ref, NodePtr parent)
+auto AvlTree<Traits>::internal_insert(NodePtr& node, const value_type& value, Ref ref, NodePtr parent) -> NodePtr
 {
-    if (!node) {
-        node = new Node(value, ref);
-        node->m_parent = parent;
-        return;
-    }
+    if (!node)
+        return Parent::internal_insert(node, value, ref, parent);
 
     const auto branch = Compare()(node->getValue(), value);
-
     internal_insert(node->m_pChild[branch], value, ref, node);
     rebalance(node);
+    return node;
 }
 
 template <typename Traits>
@@ -194,76 +183,26 @@ void AvlTree<Traits>::remove(NodePtr node)
     if (!node)
         return;
 
-    std::lock_guard lock(this->m_mutex);
-
     NodePtr start = nullptr;
 
     if (!node->m_pChild[0] || !node->m_pChild[1]) {
-        auto child = node->m_pChild[0] ? node->m_pChild[0] : node->m_pChild[1];
-        auto parent = node->m_parent;
-
-        if (!parent) {
-            this->m_root = child;
-        }
-        else if (node == parent->m_pChild[0]) {
-            parent->m_pChild[0] = child;
-        }
-        else {
-            parent->m_pChild[1] = child;
-        }
-
-        if (child)
-            child->m_parent = parent;
-
-        start = parent;
+        start = node->m_parent;
     }
     else {
-        NodePtr successor = node->m_pChild[1];
+        auto successor = node->m_pChild[1];
 
         while (successor->m_pChild[0])
             successor = successor->m_pChild[0];
 
-        NodePtr successor_parent = successor->m_parent;
-
-        if (successor_parent != node) {
-            successor_parent->m_pChild[0] = successor->m_pChild[1];
-
-            if (successor->m_pChild[1])
-                successor->m_pChild[1]->m_parent = successor_parent;
-
-            successor->m_pChild[1] = node->m_pChild[1];
-            successor->m_pChild[1]->m_parent = successor;
-
-            start = successor_parent;
-        }
-        else {
-            start = successor;
-        }
-
-        successor->m_parent = node->m_parent;
-
-        if (!node->m_parent)
-            this->m_root = successor;
-
-        else if (node == node->m_parent->m_pChild[0])
-            node->m_parent->m_pChild[0] = successor;
-        else
-            node->m_parent->m_pChild[1] = successor;
-
-        successor->m_pChild[0] = node->m_pChild[0];
-        successor->m_pChild[0]->m_parent = successor;
+        auto successor_parent = successor->m_parent;
+        start = (successor_parent == node) ? successor : successor_parent;
     }
 
-    delete node;
+    Parent::remove(node);
 
     while (start) {
-        NodePtr& subtree = !start->m_parent
-            ? this->m_root
-            : (start == start->m_parent->m_pChild[0]
-                ? start->m_parent->m_pChild[0] : start->m_parent->m_pChild[1]);
-
+        NodePtr& subtree = !start->m_parent ? this->m_root : (start == start->m_parent->m_pChild[0] ? start->m_parent->m_pChild[0] : start->m_parent->m_pChild[1]);
         rebalance(subtree);
-
         start = subtree->m_parent;
     }
 }
