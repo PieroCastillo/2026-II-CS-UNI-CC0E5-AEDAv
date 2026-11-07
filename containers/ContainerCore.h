@@ -49,4 +49,5 @@ public:
     virtual ForwardIterator end() const = 0;
 };
 
+
 #endif

@@ -3,6 +3,7 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <map>
 #include "foreach.h"
 #include "containers/vector.h"
 #include "containers/linkedlist.h"
@@ -354,4 +355,67 @@ void DemoBinaryTree() {
     PrintColored(cout, "Pruebas para BinaryTree", Color::Yellow);
     BinaryTree<BinaryTreeAscTraits<TX>> tree;
     TestBinaryTree(tree, "binarytree.txt");
+}
+
+int suma(int a, int b)           {    return a+b;    }
+int resta(int a, int b)          {    return a-b;    }
+int multiplicacion(int a, int b) {    return a*b;    }
+int division(int a, int b)       {    return a/b;    }
+
+void DemoPointersToFunctions(){
+    cout << "\n";
+    PrintColored(cout, "Pruebas para Punteros a Funciones", Color::Yellow);
+    int (*pFunc1)(int,int) = &suma;
+    int x = 5, y = 10;
+    cout << "Suma(1) de " << x << " y " << y << " es: " << pFunc1(x,y) << endl;
+
+    auto pFunc2 = &suma;
+    cout << "Suma de " << x << " y " << y << " es: " << pFunc2(x,y) << endl;
+
+    int ope;
+    cout << "Ingrese operacion a realizar (0: suma, 1: resta, 2: multiplicacion, 3: division): ";
+    cin >> ope;
+    switch(ope){
+        case 0: pFunc1 = &suma;           break;
+        case 1: pFunc1 = &resta;          break;
+        case 2: pFunc1 = &multiplicacion; break;
+        case 3: pFunc1 = &division;       break;
+        default: cout << "Operacion invalida" << endl; return;
+    }
+    cout << "Suma (switch) de " << x << " y " << y << " es: " << pFunc1(x,y) << endl;
+
+    int (*vpf[4])(int,int) = {&suma, &resta, &multiplicacion, &division};
+    cout << "Ingrese operacion a realizar (0: suma, 1: resta, 2: multiplicacion, 3: division): ";
+    cin >> ope;
+    int rpta = (*vpf[ope])(x,y);
+    cout << "Suma (vpf): " << rpta << endl;
+
+    using FuncPtr = int(*)(int,int);
+    map<int, FuncPtr> m1 = {
+        {0, &suma},
+        {5, &resta},
+        {8, &multiplicacion},
+        {9, &division}
+    };
+    cout << "Ingrese operacion a realizar (0: suma, 5: resta, 8: multiplicacion, 9: division): ";
+    cin >> ope;
+    rpta = m[ope](x,y);
+    cout << "Suma (map): " << rpta << endl;
+
+    enum OPE_TYPE {
+        SUMA = 0,
+        RESTA = 1,
+        MULTIPLICACION = 2,
+        DIVISION = 3
+    };
+    map<OPE_TYPE, FuncPtr> m2 = {
+        {OPE_TYPE::SUMA, &suma},
+        {OPE_TYPE::RESTA, &resta},
+        {OPE_TYPE::MULTIPLICACION, &multiplicacion},
+        {OPE_TYPE::DIVISION, &division}
+    };
+    cout << "Ingrese operacion a realizar (" << OPE_TYPE::SUMA << ": suma, " << OPE_TYPE::RESTA << ": resta, " << OPE_TYPE::MULTIPLICACION << ": multiplicacion, " << OPE_TYPE::DIVISION << ": division): ";
+    cin >> ope;
+    rpta = m2[ope](x,y);
+    cout << "Suma (map con enum): " << rpta << endl;
 }
