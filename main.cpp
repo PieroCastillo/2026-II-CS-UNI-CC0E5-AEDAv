@@ -7,11 +7,14 @@ using namespace std;
 // Compilar asi: make
 // Ejecutar asi: ./main
 int main() {
-    // DemoVector();
-    // DemoRaceCondition();
-    // DemoLinkedList();
-    // DemoHeap();
-    // DemoBinaryTree();
-    DemoPointersToFunctions();
+    DemoVector();
+    DemoRaceCondition();
+    DemoLinkedList();
+    DemoHeap();
+    DemoBinaryTree();
+    // DemoPointersToFunctions();
+    DemoAvlTree();
+    DemoHashTable();
+    DemoMerkleTree();
     return 0;
 }

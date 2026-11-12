@@ -12,25 +12,28 @@
 #include "containers/circulardoublelinkedlist.h"
 #include "containers/Heap.h"
 #include "containers/binarytree.h"
+#include "containers/avltree.h"
+#include "containers/HashTable.h"
+#include "containers/MerkleTree.h"
 #include "utilities/printcolored.h"
 #include "Demos.h"
 using namespace std;
 
-void AddOne(GeneralNode<TX> &node) {
+void AddOne(GeneralNode<TX>& node) {
     node.value() += 1;
 }
 
 template <typename T>
-void AddX(GeneralNode<T> &node, T x) {
+void AddX(GeneralNode<T>& node, T x) {
     node.value() += x;
 }
 
-void Square(GeneralNode<TX> &node) {
+void Square(GeneralNode<TX>& node) {
     node.value() *= node.value();
 }
 
 template <typename T>
-void ModX(GeneralNode<T> &node, T x) {
+void ModX(GeneralNode<T>& node, T x) {
     node.value() %= x;
 }
 
@@ -38,12 +41,12 @@ void ModX(GeneralNode<T> &node, T x) {
 // mayor que 'threshold'. Generico en Node y T para servir tanto a
 // Vector<VectorAscTraits<TX>> (int) como a Vector<VectorAscTraits<string>>.
 template <typename Node, typename T>
-bool IsGreaterThan(Node &node, T threshold) {
+bool IsGreaterThan(Node& node, T threshold) {
     return node.getValue() > threshold;
 }
 
 template <typename Node>
-void PrintNode(Node &node, ostream &os) {
+void PrintNode(Node& node, ostream& os) {
     os << node << " ";
 }
 const TX NThreads = 5;
@@ -52,16 +55,16 @@ const TX NThreads = 5;
 // Container, una por una. La insercion concurrente queda aislada en
 // DemoRaceCondition(), que es donde se estudia esa problematica.
 template <typename Container>
-void InsertElements(Container &container,
-                     const vector<pair<typename Container::value_type, Ref>> &values) {
-    for (const auto &v : values)
+void InsertElements(Container& container,
+    const vector<pair<typename Container::value_type, Ref>>& values) {
+    for (const auto& v : values)
         container.push_back(v.first, v.second);
 }
 
 template <typename Container>
-void TestContainer(Container &container,
-                    const vector<pair<typename Container::value_type, Ref>> &values,
-                    const string &filename) {
+void TestContainer(Container& container,
+    const vector<pair<typename Container::value_type, Ref>>& values,
+    const string& filename) {
     InsertElements(container, values);
 
     // Impresion usando operador de inserción
@@ -84,7 +87,7 @@ void TestContainer(Container &container,
 // Prueba los recorridos del Container hacia adelante (begin/end) y hacia
 // atras (rbegin/rend) solamente, imprimiendo los elementos en cada sentido.
 template <typename Container>
-void TestTraversal(Container &container) {
+void TestTraversal(Container& container) {
     using Node = typename Container::Node;
 
     cout << "Forward traversal:  [";
@@ -99,14 +102,14 @@ void TestTraversal(Container &container) {
     // nodo cuyo valor sea mayor que el del primer elemento del container.
     if (!container.empty()) {
         auto threshold = (*container.begin()).getValue();
-        Node &found = container.FirstThat(IsGreaterThan<Node, decltype(threshold)>, threshold);
+        Node& found = container.FirstThat(IsGreaterThan<Node, decltype(threshold)>, threshold);
         cout << "FirstThat (primer valor > " << threshold << "): " << found << endl;
     }
 }
 
 // Prueba los recorridos hacia únicamente hacia adelante, especialmente para una LinkedList
 template <typename Container>
-void TestForwardTraversal(Container &container){
+void TestForwardTraversal(Container& container) {
     using Node = typename Container::Node;
 
     cout << "Prueba de función call con std::cout para LinkedList [";
@@ -114,14 +117,14 @@ void TestForwardTraversal(Container &container){
     cout << "]" << endl;
 
     cout << "Prueba de uso de iteradores para impresión: [";
-    for (auto &&node : container)
+    for (auto&& node : container)
         cout << node << " ";
     cout << "]" << endl;
 
     // Prueba de FirstThat(): primer nodo cuyo valor sea mayor que el primero
     if (container.begin() != container.end()) {
         auto threshold = (*container.begin()).getValue();
-        Node &found = container.FirstThat(IsGreaterThan<Node, decltype(threshold)>, threshold);
+        Node& found = container.FirstThat(IsGreaterThan<Node, decltype(threshold)>, threshold);
         cout << "FirstThat (primer valor > " << threshold << "): " << found << endl;
     }
 }
@@ -134,18 +137,18 @@ void DemoVector() {
 
     // Cada elemento es una pareja (valor, ref) que se guarda en un Node;
     // el constructor initializer_list arma el Vector inicial de una vez
-    Vector<VectorAscTraits<TX>> vec({{0, 10}, {1, 11}, {2, 12}, {3, 13}, {4, 14}});
-    TestContainer(vec, {{5, 15}, {6, 16}, {7, 17}, {8, 18}, {9, 19}}, "vector.txt");
+    Vector<VectorAscTraits<TX>> vec({ { 0, 10 },{ 1, 11 },{ 2, 12 },{ 3, 13 },{ 4, 14 } });
+    TestContainer(vec, { { 5, 15 },{ 6, 16 },{ 7, 17 },{ 8, 18 },{ 9, 19 } }, "vector.txt");
     TestTraversal(vec);
 
     ofstream("vector_str.txt", ios::trunc).close();
     Vector<VectorAscTraits<string>> strVec;
-    TestContainer(strVec, {{"Hello", 1}, {"World", 2}}, "vector_str.txt");
+    TestContainer(strVec, { { "Hello", 1 },{ "World", 2 } }, "vector_str.txt");
     TestTraversal(strVec);
 }
 
 void TestCustomVector() {
-    BaseVector<VectorAscTraits<TX>, Callable, Applicable, Searchable, ReverseCallable> vec({{0, 10}, {1, 11}, {2, 12}, {3, 13}, {4, 14}});
+    BaseVector<VectorAscTraits<TX>, Callable, Applicable, Searchable, ReverseCallable> vec({ { 0, 10 },{ 1, 11 },{ 2, 12 },{ 3, 13 },{ 4, 14 } });
 
 }
 
@@ -163,7 +166,7 @@ void DemoRaceCondition() {
 
     vector<pair<TX, Ref>> values(N);
     for (size_t i = 0; i < N; ++i)
-        values[i] = {static_cast<TX>(i), static_cast<Ref>(i)};
+        values[i] = { static_cast<TX>(i), static_cast<Ref>(i) };
 
     Vector<VectorAscTraits<TX>> vec;
 
@@ -172,41 +175,41 @@ void DemoRaceCondition() {
     size_t n = values.size();
     vector<thread> workers;
     for (size_t t = 0; t < NThreads; ++t) {
-        workers.emplace_back([&vec, &values, n, t](){
+        workers.emplace_back([&vec, &values, n, t]() {
             for (size_t i = t; i < n; i += NThreads)
                 vec.push_back(values[i].first, values[i].second);
-        });
+            });
     }
-    for (auto &worker : workers)
+    for (auto& worker : workers)
         worker.join();
 
     TXX expectedSum = 0;
-    for (auto &v : values) expectedSum += v.first;
+    for (auto& v : values) expectedSum += v.first;
 
     TXX actualSum = 0;
     for (size_t i = 0; i < vec.size(); ++i) actualSum += vec[i].getValue();
 
     cout << "DemoRaceCondition: se esperaban " << N << " elementos, "
-         << "el Vector quedo con " << vec.size() << endl;
+        << "el Vector quedo con " << vec.size() << endl;
     cout << "  suma esperada = " << expectedSum
-         << ", suma obtenida = " << actualSum << endl;
+        << ", suma obtenida = " << actualSum << endl;
 
     if (vec.size() != N || actualSum != expectedSum)
         cout << "  *** Race condition detectada: se perdieron inserciones (push_back / resize sin sincronizar) ***" << endl;
     else
         cout << "  No se perdio ningun elemento: el mutex de push_back/resize "
-             << "sincroniza correctamente las inserciones concurrentes" << endl;
+        << "sincroniza correctamente las inserciones concurrentes" << endl;
 }
 
 template <typename Container>
-void TestLinkedList(Container &list, const string &filename) {
+void TestLinkedList(Container& list, const string& filename) {
     ofstream(filename, ios::trunc).close();
 
     // Pruebas de push_back
-    TestContainer(list, {{5, 15}, {1, 11}, {8, 18}, {3, 13}}, filename);
+    TestContainer(list, { { 5, 15 },{ 1, 11 },{ 8, 18 },{ 3, 13 } }, filename);
     TestForwardTraversal(list);
 
-    InsertElements(list, {{0, 10}, {1, 11}, {2, 12}, {3, 13}, {4, 14}});
+    InsertElements(list, { { 0, 10 },{ 1, 11 },{ 2, 12 },{ 3, 13 },{ 4, 14 } });
 
     // Pruebas de insert
     list.insert(4, 12);
@@ -238,7 +241,7 @@ void TestLinkedList(Container &list, const string &filename) {
 }
 
 template <typename DoubleContainer>
-void TestDoubleLinkedListSpecifics(DoubleContainer &list) {
+void TestDoubleLinkedListSpecifics(DoubleContainer& list) {
     TestTraversal(list);
 
     list.clear();
@@ -276,7 +279,7 @@ void DemoLinkedList()
 }
 
 template <typename Heap>
-void InitHeap(Heap &heap) {
+void InitHeap(Heap& heap) {
     heap.push(50, 5);
     heap.push(20, 2);
     heap.push(80, 8);
@@ -287,7 +290,7 @@ void InitHeap(Heap &heap) {
 }
 
 template <typename Heap>
-void ExtractHeap(Heap &heap) {
+void ExtractHeap(Heap& heap) {
     cout << "Tras extracción: ";
     while (!heap.empty()) {
         auto node = heap.pop();
@@ -323,11 +326,11 @@ void DemoHeap() {
 }
 
 template <typename TreeContainer>
-void TestBinaryTree(TreeContainer &tree, const string &filename) {
+void TestBinaryTree(TreeContainer& tree, const string& filename) {
     ofstream(filename, ios::trunc).close();
 
     // Pruebas de insercion y persistencia
-    TestContainer(tree, {{50, 5}, {20, 2}, {80, 8}, {10, 1}, {30, 3}, {70, 7}, {90, 9}}, filename);
+    TestContainer(tree, { { 50, 5 },{ 20, 2 },{ 80, 8 },{ 10, 1 },{ 30, 3 },{ 70, 7 },{ 90, 9 } }, filename);
     // Recorrido in-order
     TestTraversal(tree);
 
@@ -355,67 +358,110 @@ void DemoBinaryTree() {
     PrintColored(cout, "Pruebas para BinaryTree", Color::Yellow);
     BinaryTree<BinaryTreeAscTraits<TX>> tree;
     TestBinaryTree(tree, "binarytree.txt");
+    tree.visualize();
 }
 
-int suma(int a, int b)           {    return a+b;    }
-int resta(int a, int b)          {    return a-b;    }
-int multiplicacion(int a, int b) {    return a*b;    }
-int division(int a, int b)       {    return a/b;    }
-
-void DemoPointersToFunctions(){
+void DemoAvlTree()
+{
     cout << "\n";
-    PrintColored(cout, "Pruebas para Punteros a Funciones", Color::Yellow);
-    int (*pFunc1)(int,int) = &suma;
-    int x = 5, y = 10;
-    cout << "Suma(1) de " << x << " y " << y << " es: " << pFunc1(x,y) << endl;
+    PrintColored(cout, "Pruebas para AvlTree", Color::Yellow);
+    AvlTree<AvlTreeAscTraits<TX>> tree;
+    TestBinaryTree(tree, "avltree.txt");
+    tree.visualize();
+}
 
-    auto pFunc2 = &suma;
-    cout << "Suma de " << x << " y " << y << " es: " << pFunc2(x,y) << endl;
+void DemoHashTable() {
+    cout << "\n";
+    PrintColored(cout, "Pruebas para HashTable", Color::Yellow);
 
-    int ope;
-    cout << "Ingrese operacion a realizar (0: suma, 1: resta, 2: multiplicacion, 3: division): ";
-    cin >> ope;
-    switch(ope){
-        case 0: pFunc1 = &suma;           break;
-        case 1: pFunc1 = &resta;          break;
-        case 2: pFunc1 = &multiplicacion; break;
-        case 3: pFunc1 = &division;       break;
-        default: cout << "Operacion invalida" << endl; return;
+    HashTable<string, TX> table;
+
+    // Insercion
+    table.insert("Apple", 10, 1);
+    table.insert("Banana", 20, 2);
+    table.insert("Orange", 30, 3);
+    table.insert("Grape", 40, 4);
+    table.insert("Mango", 50, 5);
+
+    cout << "HashTable tras inserciones: " << table << endl;
+
+    // Acceso y modificacion
+    table["Apple"] += 5;
+    table["Pineapple"] = 60;
+
+    cout << "HashTable tras modificaciones: " << table << endl;
+    cout << "Apple = " << table.at("Apple") << endl;
+    cout << "Contains Banana: " << table.contains("Banana") << endl;
+    cout << "Contains Pear: " << table.contains("Pear") << endl;
+
+    // Eliminacion
+    table.erase("Banana");
+    cout << "HashTable tras erase(Banana): " << table << endl;
+
+    // Copia y persistencia
+    HashTable<string, TX> copy = table;
+    ofstream("hashtable.txt", ios::trunc) << copy;
+
+    HashTable<string, TX> loaded;
+    ifstream("hashtable.txt") >> loaded;
+
+    cout << "HashTable copiada: " << copy << endl;
+    cout << "HashTable leida desde archivo: " << loaded << endl;
+
+    // Estadisticas
+    cout << "Size: " << loaded.size()
+         << ", Buckets: " << loaded.bucket_count()
+         << ", Load factor: " << loaded.load_factor() << endl;
+
+    loaded.clear();
+    cout << "HashTable tras clear: " << loaded << endl;
+}
+
+struct DemoHasher {
+    using Digest = uint64_t;
+
+    Digest hash_leaf(const TX& value) const {
+        return std::hash<TX>{}(value);
     }
-    cout << "Suma (switch) de " << x << " y " << y << " es: " << pFunc1(x,y) << endl;
 
-    int (*vpf[4])(int,int) = {&suma, &resta, &multiplicacion, &division};
-    cout << "Ingrese operacion a realizar (0: suma, 1: resta, 2: multiplicacion, 3: division): ";
-    cin >> ope;
-    int rpta = (*vpf[ope])(x,y);
-    cout << "Suma (vpf): " << rpta << endl;
+    Digest hash_pair(Digest left, Digest right) const {
+        return std::hash<Digest>{}(left ^ (right + 0x9E3779B97F4A7C15ULL +(left << 6) + (left >> 2)));
+    }
+};
 
-    using FuncPtr = int(*)(int,int);
-    map<int, FuncPtr> m1 = {
-        {0, &suma},
-        {5, &resta},
-        {8, &multiplicacion},
-        {9, &division}
-    };
-    cout << "Ingrese operacion a realizar (0: suma, 5: resta, 8: multiplicacion, 9: division): ";
-    cin >> ope;
-    rpta = m[ope](x,y);
-    cout << "Suma (map): " << rpta << endl;
+void DemoMerkleTree() {
+    cout << "\n";
+    PrintColored(cout, "Pruebas para MerkleTree", Color::Yellow);
 
-    enum OPE_TYPE {
-        SUMA = 0,
-        RESTA = 1,
-        MULTIPLICACION = 2,
-        DIVISION = 3
-    };
-    map<OPE_TYPE, FuncPtr> m2 = {
-        {OPE_TYPE::SUMA, &suma},
-        {OPE_TYPE::RESTA, &resta},
-        {OPE_TYPE::MULTIPLICACION, &multiplicacion},
-        {OPE_TYPE::DIVISION, &division}
-    };
-    cout << "Ingrese operacion a realizar (" << OPE_TYPE::SUMA << ": suma, " << OPE_TYPE::RESTA << ": resta, " << OPE_TYPE::MULTIPLICACION << ": multiplicacion, " << OPE_TYPE::DIVISION << ": division): ";
-    cin >> ope;
-    rpta = m2[ope](x,y);
-    cout << "Suma (map con enum): " << rpta << endl;
+    MerkleTree<TX, uint64_t, DemoHasher> tree;
+
+    // Insercion
+    for (TX i = 1; i <= 8; ++i)
+        tree.insert(i * 10);
+
+    cout << "MerkleTree tras inserciones:" << endl;
+    for (auto& node : tree)
+        cout << node.getValue() << " ";
+    cout << endl;
+
+    cout << "Root hash: " << tree.root_hash() << endl;
+    cout << "Root valido: " << tree.verify_root() << endl;
+
+    // Modificacion y reconstruccion
+    tree.update(2, 999);
+    cout << "Root tras modificar una hoja: "<< tree.root_hash() << endl;
+
+    // Copia y persistencia
+    auto copy = tree;
+    ofstream("merkletree.txt", ios::trunc) << copy;
+
+    MerkleTree<TX, uint64_t, DemoHasher> loaded;
+    ifstream("merkletree.txt") >> loaded;
+
+    cout << "MerkleTree copiado: " << copy.root_hash() << endl;
+    cout << "MerkleTree leido desde archivo: "<< loaded.root_hash() << endl;
+
+    // Limpieza
+    loaded.clear();
+    cout << "MerkleTree tras clear: "<< loaded.empty() << endl;
 }
