@@ -4,6 +4,7 @@
 #include "GeneralIterator.h"
 #include "GeneralContainer.h"
 #include "mixins.h"
+#include <print>
 #include <string>
 
 template <typename T, typename Derivated>
@@ -106,6 +107,8 @@ protected:
 
     NodePtr m_root = nullptr; // root of the binary tree
     virtual NodePtr internal_insert(NodePtr& node, const value_type& value, Ref ref, NodePtr parent = nullptr);
+    virtual void printNode(const Node* node) const { std::print("{}", node->getValue()); }
+    void visualize_recursive(NodePtr node, const std::string& prefix, bool isLast, bool isRoot) const;
 public:
     BaseBinaryTree() = default;
     BaseBinaryTree(const BaseBinaryTree& another) { *this = another; }
@@ -123,12 +126,11 @@ public:
     // Iteradores (forward y backward)
     // FirstThat, ForEach, call, rcall por herencia
 
+    NodePtr root() const noexcept { return m_root; }
+
     void clear() override;
-
     void push_back(const value_type& value, Ref ref) override { insert(value, ref); }
-
     void clear_recursive(NodePtr node);
-
     virtual void remove(NodePtr node);
 
     ForwardIterator begin() const override;
@@ -141,15 +143,13 @@ public:
     BaseBinaryTree& operator=(BaseBinaryTree&& another) noexcept;
 
     void visualize() const;
-    void visualize_recursive(NodePtr node, const std::string& prefix, bool isLast, bool isRoot) const;
 };
-
 template <typename Traits, template <typename> typename... Mixins>
 void BaseBinaryTree<Traits, Mixins...>::visualize() const {
     std::lock_guard lock(this->m_mutex);
 
     if (!m_root) {
-        std::cout << "(empty tree)" << std::endl;
+        std::println("(empty tree)");
         return;
     }
 
@@ -161,18 +161,22 @@ void BaseBinaryTree<Traits, Mixins...>::visualize_recursive(NodePtr node, const 
     if (!node)
         return;
 
-    if (isRoot)
-        std::cout << node->getValue() << std::endl;
-    else
-        std::cout << prefix << (isLast ? "└── " : "├── ") << node->getValue() << std::endl;
+    if (isRoot) {
+        printNode(node);
+        std::println();
+    }
+    else {
+        std::print("{}{}", prefix, isLast ? "└── " : "├── ");
+        printNode(node);
+        std::println();
+    }
 
-    const std::string nextPrefix =
-        prefix + (isRoot ? "" : (isLast ? "    " : "│   "));
+    const auto nextPrefix = prefix + (isRoot ? "" : (isLast ? "    " : "│   "));
 
-    if (node->m_pChild[1])
+    if (node->m_pChild[1]) // right child
         visualize_recursive(node->m_pChild[1], nextPrefix, !node->m_pChild[0], false);
 
-    if (node->m_pChild[0])
+    if (node->m_pChild[0]) // left child
         visualize_recursive(node->m_pChild[0], nextPrefix, true, false);
 }
 

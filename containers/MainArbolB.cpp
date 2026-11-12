@@ -4,7 +4,7 @@
 //#include <iostream.h>
 #include <time.h>
 #include <stdlib.h>
-
+/*
 #include "btree.h"
 #include <string>
 
@@ -47,15 +47,12 @@ int main (int argc, char * argv)
                bt.Print(cout);
        }
        bt.Print(cout);
-       cout.flush();*/
+       cout.flush();
        return 1;
 }
 
 
-
-
-
-
+*/
 
 
 

@@ -91,61 +91,23 @@ public:
     AvlTree& operator=(AvlTree&& another) noexcept;
 
     auto operator[](const value_type& value) const->NodePtr;
-
-    // friend std::ostream& operator<< <Traits>(std::ostream& os, const AvlTree& tree);
-    // friend std::istream& operator>> <Traits>(std::istream& is, AvlTree& tree);
 };
-
-// template <typename Traits>
-// std::ostream& operator<<(std::ostream& os, const AvlTree<Traits>& tree)
-// {
-//     uint32_t count = 0;
-
-//     for (auto it = tree.begin(); it != tree.end(); ++it)
-//         ++count;
-
-//     os << count << '\n';
-
-//     for (auto it = tree.begin(); it != tree.end(); ++it)
-//         os << *it << '\n';
-
-//     return os;
-// }
-
-// template <typename Traits>
-// std::istream& operator>>(std::istream& is, AvlTree<Traits>& tree)
-// {
-//     uint32_t count;
-
-//     if (!(is >> count))
-//         return is;
-
-//     AvlTree<Traits> temp;
-
-//     for (std::size_t i = 0; i < count; ++i) {
-//         typename Traits::value_type value;
-
-//         if (!(is >> value))
-//             return is;
-
-//         temp.insert(value, Ref{});
-//     }
-
-//     tree = std::move(temp);
-//     return is;
-// }
 
 template <typename Traits>
 auto AvlTree<Traits>::operator[](const value_type& value) const -> NodePtr
 {
-    auto node = this->m_root;
+    auto curr = m_root;
+    Compare comp{};
 
-    while (node) {
-        if (node->getValue() == value)
-            return node;
+    while (curr) {
+        const auto& current = curr->getValue();
 
-        const auto branch = Compare()(node->getValue(), value);
-        node = node->m_pChild[branch];
+        if (comp(value, current))
+            curr = curr->m_pChild[0];
+        else if (comp(current, value))
+            curr = curr->m_pChild[1];
+        else
+            return curr;
     }
 
     return nullptr;

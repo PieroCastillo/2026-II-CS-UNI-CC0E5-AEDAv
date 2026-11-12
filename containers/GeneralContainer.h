@@ -28,6 +28,8 @@ public:
     using typename Core::Node;
     using typename Core::Delim;
     using typename Core::ForwardIterator;
+protected:
+    using Core::m_mutex;
 public:
     GeneralContainer() : Mixins<Traits>()... {}
     using Mixins<Traits>::Mixins...;
