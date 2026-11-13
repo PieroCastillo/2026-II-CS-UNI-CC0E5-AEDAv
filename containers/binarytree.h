@@ -174,7 +174,7 @@ public:
     BaseBinaryTree& operator=(const BaseBinaryTree& other);
     BaseBinaryTree& operator=(BaseBinaryTree&& other) noexcept;
 
-    void visualize() const;
+    virtual void visualize() const;
 };
 
 template <typename Traits, template <typename> typename... Mixins>
@@ -303,7 +303,12 @@ void BaseBinaryTree<Traits, Mixins...>::visualize() const {
         return;
     }
 
-    treeUtils::visualize(m_root, "", true, true, [this](const Node* node) {printNode(node);});
+    treeUtils::visualize(
+        m_root,
+        [](const Node* node) {
+            return std::format("{}", node->getValue());
+        }
+    );
 }
 
 #endif // __MERKLE_TREE_H__

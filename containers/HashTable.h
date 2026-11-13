@@ -29,7 +29,6 @@ struct HashEntry {
     V value{};
 
     HashEntry() = default;
-
     HashEntry(const K& k, const V& v = V{}) : key(k), value(v) {}
 };
 
@@ -78,9 +77,6 @@ public:
     using mapped_type = typename Traits::mapped_type;
     using value_type = typename Traits::value_type;
 
-    // using KeyCompare = typename Traits::KeyCompareType;
-    // using BucketTraits = HashAvlTraits<key_type, mapped_type, KeyCompare>;
-    // using Bucket = AvlTree<BucketTraits>;
     using Hash = typename Traits::Hash;
     using Compare = typename Traits::Compare;
 
@@ -107,7 +103,7 @@ private:
     void initialize(size_t count);
     void insert_unlocked(const key_type& key, const mapped_type& value, Ref ref);
     void rehash(size_t count);
-    void printNode(const Node* node) const;
+    std::string printNode(const Node* node) const;
 
 public:
     explicit BaseHashTable(size_t capacity = 16);
@@ -162,14 +158,12 @@ auto BaseHashTable<Traits>::find_node(const key_type& key) -> NodePtr {
     return m_buckets[bucket_index(key)][probe];
 }
 
-
 template <typename Traits>
 auto BaseHashTable<Traits>::find_node(const key_type& key) const -> ConstNodePtr {
     value_type probe{ key };
 
     return m_buckets[bucket_index(key)][probe];
 }
-
 
 template <typename Traits>
 void BaseHashTable<Traits>::initialize(size_t count) {
@@ -184,13 +178,8 @@ void BaseHashTable<Traits>::initialize(size_t count) {
     m_buckets.swap(buckets);
 }
 
-
 template <typename Traits>
-void BaseHashTable<Traits>::insert_unlocked(
-    const key_type& key,
-    const mapped_type& value,
-    Ref ref
-) {
+void BaseHashTable<Traits>::insert_unlocked(const key_type& key,const mapped_type& value,Ref ref) {
     value_type probe{ key };
 
     auto& bucket = m_buckets[bucket_index(key)];
@@ -232,15 +221,12 @@ void BaseHashTable<Traits>::rehash(size_t count) {
 
 
 template <typename Traits>
-void BaseHashTable<Traits>::printNode(const Node* node) const {
+std::string BaseHashTable<Traits>::printNode(const Node* node) const {
     const auto& entry = node->getValue();
+    std::ostringstream os;
+    os << std::format("{}: {} [Ref: {}]", entry.key, entry.value, node->getRef());
 
-    std::print(
-        "{}: {} [Ref: {}]",
-        entry.key,
-        entry.value,
-        node->getRef()
-    );
+    return os.str();
 }
 
 template <typename Traits>
@@ -248,13 +234,11 @@ BaseHashTable<Traits>::BaseHashTable(size_t capacity) {
     initialize(capacity);
 }
 
-
 template <typename Traits>
 BaseHashTable<Traits>::BaseHashTable(const BaseHashTable& other) {
     std::lock_guard lock(other.m_mutex);
 
     initialize(other.m_buckets.size());
-
     m_maxLoadFactor = other.m_maxLoadFactor;
 
     for (const auto& bucket : other.m_buckets) {
@@ -265,7 +249,6 @@ BaseHashTable<Traits>::BaseHashTable(const BaseHashTable& other) {
         }
     }
 }
-
 
 template <typename Traits>
 BaseHashTable<Traits>::BaseHashTable(BaseHashTable&& other) {
@@ -278,7 +261,6 @@ BaseHashTable<Traits>::BaseHashTable(BaseHashTable&& other) {
     other.initialize(1);
 }
 
-
 template <typename Traits>
 BaseHashTable<Traits>& BaseHashTable<Traits>::operator=(const BaseHashTable& other) {
     if (this == &other)
@@ -290,7 +272,6 @@ BaseHashTable<Traits>& BaseHashTable<Traits>::operator=(const BaseHashTable& oth
 
     return *this;
 }
-
 
 template <typename Traits>
 BaseHashTable<Traits>& BaseHashTable<Traits>::operator=(BaseHashTable&& other) {
@@ -306,7 +287,6 @@ BaseHashTable<Traits>& BaseHashTable<Traits>::operator=(BaseHashTable&& other) {
     other.initialize(1);
     return *this;
 }
-
 
 template <typename Traits>
 void BaseHashTable<Traits>::swap(BaseHashTable& other) {
@@ -374,10 +354,8 @@ auto BaseHashTable<Traits>::operator[](const key_type& key) -> mapped_type& {
     }
 
     insert_unlocked(key, mapped_type{}, Ref{});
-
     return find_node(key)->value().value;
 }
-
 
 template <typename Traits>
 auto BaseHashTable<Traits>::at(const key_type& key) -> mapped_type& {
@@ -414,12 +392,10 @@ bool BaseHashTable<Traits>::insert(const key_type& key, const mapped_type& value
     if (find_node(key))
         return false;
 
-    if (static_cast<float>(m_size + 1) / static_cast<float>(m_buckets.size()) > m_maxLoadFactor) {
+    if (static_cast<float>(m_size + 1) / static_cast<float>(m_buckets.size()) > m_maxLoadFactor)
         rehash(m_buckets.size() * 2);
-    }
 
     insert_unlocked(key, value, ref);
-
     return true;
 }
 
@@ -479,9 +455,9 @@ void BaseHashTable<Traits>::visualize() const {
 
         std::println();
 
-        treeUtils::visualize(root, "", true, true,
-            [this](const Node* node) {
-                printNode(node);
+        treeUtils::visualize(root,
+            [this](const Node* node) -> std::string {
+                return printNode(node);
             });
     }
 }
@@ -495,7 +471,6 @@ std::ostream& BaseHashTable<Traits>::write(std::ostream& os, const BaseHashTable
     for (const auto& bucket : table.m_buckets) {
         for (const auto& node : bucket) {
             const auto& entry = node.getValue();
-
             os << entry.key << ' ' << entry.value << ' ' << node.getRef() << '\n';
 
             if (!os)
@@ -506,7 +481,6 @@ std::ostream& BaseHashTable<Traits>::write(std::ostream& os, const BaseHashTable
     return os;
 }
 
-
 template <typename Traits>
 std::istream& BaseHashTable<Traits>::read(std::istream& is, BaseHashTable& table) {
     size_t count{};
@@ -515,7 +489,6 @@ std::istream& BaseHashTable<Traits>::read(std::istream& is, BaseHashTable& table
         return is;
 
     BaseHashTable temp;
-
     {
         std::lock_guard lock(table.m_mutex);
         temp.m_maxLoadFactor = table.m_maxLoadFactor;
@@ -540,15 +513,4 @@ std::istream& BaseHashTable<Traits>::read(std::istream& is, BaseHashTable& table
 
     return is;
 }
-
-template <typename Traits>
-std::ostream& operator<<(std::ostream& os, const BaseHashTable<Traits>& table) {
-    return BaseHashTable<Traits>::write(os, table);
-}
-
-
-template <typename Traits>
-std::istream& operator>>(std::istream& is, BaseHashTable<Traits>& table) {
-    return BaseHashTable<Traits>::read(is, table);
-}
-#endif
+#endif // __HASH_TABLE_H__

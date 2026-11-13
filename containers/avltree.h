@@ -105,6 +105,8 @@ public:
 
     NodePtr operator[](const value_type& value) noexcept;
     const Node* operator[](const value_type& value) const noexcept;
+
+    void visualize() const override;
 };
 
 template <typename Traits>
@@ -283,5 +285,26 @@ void AvlTree<Traits>::remove(NodePtr node) {
     this->remove_unlocked(node);
 
     rebalance_upwards(start);
+}
+
+template <typename Traits>
+void AvlTree<Traits>::visualize() const {
+    std::lock_guard lock(m_mutex);
+
+    if (!m_root) {
+        std::println("(empty tree)");
+        return;
+    }
+
+    treeUtils::visualize(
+        m_root,
+        [](const Node* node) {
+            return std::format(
+                "{} h={}",
+                node->getValue(),
+                node->m_height
+            );
+        }
+    );
 }
 #endif // __AVLTREE_H__

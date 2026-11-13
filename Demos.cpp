@@ -377,26 +377,31 @@ void DemoHashTable() {
     HashTable<string, TX> table;
 
     // Insercion
-    table.insert("Apple", 10, 1);
-    table.insert("Banana", 20, 2);
-    table.insert("Orange", 30, 3);
-    table.insert("Grape", 40, 4);
-    table.insert("Mango", 50, 5);
+    table.insert("Apple",      10, 1);
+    table.insert("Banana",     20, 2);
+    table.insert("Orange",     30, 3);
+    table.insert("Grape",      40, 4);
+    table.insert("Mango",      50, 5);
+    table.insert("Pineapple",  60, 6);
+    table.insert("Watermelon", 70, 7);
+    table.insert("Papaya",     80, 8);
+    table.insert("Strawberry", 90, 9);
+    table.insert("Blueberry", 100, 10);
+    table.insert("Kiwi",      110, 11);
+    table.insert("Peach",     120, 12);
 
-    cout << "HashTable tras inserciones: " << table << endl;
+    table.visualize();
 
     // Acceso y modificacion
     table["Apple"] += 5;
     table["Pineapple"] = 60;
 
-    cout << "HashTable tras modificaciones: " << table << endl;
-    cout << "Apple = " << table.at("Apple") << endl;
-    cout << "Contains Banana: " << table.contains("Banana") << endl;
-    cout << "Contains Pear: " << table.contains("Pear") << endl;
-
+    cout << "HashTable tras modificaciones: " << endl;
+    table.visualize();
     // Eliminacion
     table.erase("Banana");
-    cout << "HashTable tras erase(Banana): " << table << endl;
+    cout << "HashTable tras erase(Banana): " << endl;
+    table.visualize();
 
     // Copia y persistencia
     HashTable<string, TX> copy = table;
@@ -408,10 +413,8 @@ void DemoHashTable() {
     cout << "HashTable copiada: " << copy << endl;
     cout << "HashTable leida desde archivo: " << loaded << endl;
 
-    // Estadisticas
-    cout << "Size: " << loaded.size()
-         << ", Buckets: " << loaded.bucket_count()
-         << ", Load factor: " << loaded.load_factor() << endl;
+    // stats
+    cout << "Size: " << loaded.size()<< ", Buckets: " << loaded.bucket_count()<< ", Load factor: " << loaded.load_factor() << endl;
 
     loaded.clear();
     cout << "HashTable tras clear: " << loaded << endl;
