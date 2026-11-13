@@ -12,7 +12,7 @@
 #include <ostream>
 
 #include "GeneralContainer.h"
-#include "BinaryTree.h"
+#include "binarytree.h"
 #include "treeUtils.h"
 
 template <typename T, typename Digest, typename Hasher>
@@ -29,17 +29,10 @@ template <typename Traits, template <typename> typename... Mixins>
 class BaseMerkleTree;
 
 template <typename T, typename Digest, typename Hasher>
-using MerkleTree = BaseMerkleTree<
-    MerkleTraits<T, Digest, Hasher>,
-    Callable,
-    Applicable,
-    Printable,
-    Readable
->;
+using MerkleTree = BaseMerkleTree<MerkleTraits<T, Digest, Hasher>, Callable, Applicable, Printable, Readable>;
 
 template <typename Traits, template <typename> typename... Mixins>
-class BaseMerkleTree :
-    public GeneralContainer<Traits, Mixins...>
+class BaseMerkleTree : public GeneralContainer<Traits, Mixins...>
 {
 public:
     using Parent = GeneralContainer<Traits, Mixins...>;
@@ -308,15 +301,8 @@ public:
         return is;
     }
 
-    friend std::ostream& operator<<(std::ostream& os, const BaseMerkleTree& tree)
-    {
-        return write(os, tree);
-    }
-
-    friend std::istream& operator>>(std::istream& is, BaseMerkleTree& tree)
-    {
-        return read(is, tree);
-    }
+    friend std::ostream& operator<<(std::ostream& os, const BaseMerkleTree& tree) { return write(os, tree); }
+    friend std::istream& operator>>(std::istream& is, BaseMerkleTree& tree) { return read(is, tree); }
 };
 
 template <typename Traits, template <typename> typename... Mixins>

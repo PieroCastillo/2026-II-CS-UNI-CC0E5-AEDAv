@@ -1,7 +1,7 @@
 #ifndef __AVLTREE_H__
 #define __AVLTREE_H__
 
-#include "BinaryTree.h"
+#include "binarytree.h"
 
 #include <algorithm>
 #include <mutex>

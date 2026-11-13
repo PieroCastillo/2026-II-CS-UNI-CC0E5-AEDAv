@@ -17,7 +17,7 @@
 #include <ostream>
 
 #include "GeneralContainer.h"
-#include "AvlTree.h"
+#include "avltree.h"
 #include "treeUtils.h"
 
 template <typename K, typename V>
@@ -146,16 +146,14 @@ public:
     static std::ostream& write(std::ostream& os, const BaseHashTable& table);
     static std::istream& read(std::istream& is, BaseHashTable& table);
 
-    friend std::ostream& operator<<(std::ostream& os, const BaseHashTable& table);
-    friend std::istream& operator>>(std::istream& is, BaseHashTable& table);
+    friend std::ostream& operator<<(std::ostream& os, const BaseHashTable& table) { return write(os, table); }
+    friend std::istream& operator>>(std::istream& is, BaseHashTable& table) { return read(is, table); }
 };
-
 
 template <typename Traits>
 size_t BaseHashTable<Traits>::bucket_index(const key_type& key) const {
     return Hash{}(key) % m_buckets.size();
 }
-
 
 template <typename Traits>
 auto BaseHashTable<Traits>::find_node(const key_type& key) -> NodePtr {
