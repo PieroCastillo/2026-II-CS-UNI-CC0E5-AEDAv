@@ -415,6 +415,8 @@ void DemoHashTable() {
 
     loaded.clear();
     cout << "HashTable tras clear: " << loaded << endl;
+
+    copy.visualize();
 }
 
 struct DemoHasher {
@@ -464,4 +466,6 @@ void DemoMerkleTree() {
     // Limpieza
     loaded.clear();
     cout << "MerkleTree tras clear: "<< loaded.empty() << endl;
+
+    copy.visualize();
 }
